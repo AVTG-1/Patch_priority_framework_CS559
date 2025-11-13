@@ -23,6 +23,9 @@ if settings.database_url.startswith("sqlite"):
         db_file = Path(db_path)
         db_file.parent.mkdir(parents=True, exist_ok=True)
 
+# Export database URL for use in other modules
+SQLALCHEMY_DATABASE_URL = settings.database_url
+
 # Create SQLAlchemy engine
 engine = create_engine(
     settings.database_url,

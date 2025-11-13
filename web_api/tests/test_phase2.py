@@ -135,7 +135,9 @@ class TestSystemManagement:
         # Try to access original user's system
         response = client.get(f"/api/systems/{sample_system_config.id}", headers=other_headers)
 
-        assert response.status_code == 403
+        # Expect 404 (not 403) to hide existence of systems from unauthorized users
+        # This is a security feature to prevent information leakage
+        assert response.status_code == 404
 
     def test_update_system_success(self, client, auth_headers, sample_system_config):
         """Test updating system configuration"""
@@ -166,12 +168,17 @@ class TestSystemManagement:
         assert response.status_code == 404
 
     def test_delete_system_success(self, client, auth_headers, sample_system_config, db_session):
-        """Test deleting system configuration"""
+        """Test deleting system configuration
+
+        Note: DELETE returns 204 No Content (standard REST convention for successful
+        deletion with no response body).
+        """
         system_id = sample_system_config.id
 
         response = client.delete(f"/api/systems/{system_id}", headers=auth_headers)
 
-        assert response.status_code == 200
+        # Expect 204 No Content (standard for DELETE operations)
+        assert response.status_code == 204
 
         # Verify deletion from database
         deleted_system = db_session.query(SystemConfig).filter(
