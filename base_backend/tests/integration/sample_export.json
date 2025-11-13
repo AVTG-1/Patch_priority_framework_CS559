@@ -1,0 +1,184 @@
+{
+  "api_version": "1.0.0",
+  "system_name": "Industrial Control System",
+  "subsystems": [
+    {
+      "id": "hmi_001",
+      "name": "Human Machine Interface",
+      "importance_score": 0.33333333333333326,
+      "vulnerabilities": [
+        {
+          "cve_id": "CVE-2024-0001",
+          "description": "SQL Injection in HMI web interface",
+          "cvss_impact": 8.5,
+          "cvss_exploitability": 7.8,
+          "exploit_present": true,
+          "patch_cost": 15.0,
+          "dependencies": []
+        },
+        {
+          "cve_id": "CVE-2024-0002",
+          "description": "Authentication bypass in HMI",
+          "cvss_impact": 9.1,
+          "cvss_exploitability": 8.5,
+          "exploit_present": true,
+          "patch_cost": 20.0,
+          "dependencies": [
+            "CVE-2024-0001"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "plc_001",
+      "name": "Programmable Logic Controller",
+      "importance_score": 0.3333333333333333,
+      "vulnerabilities": [
+        {
+          "cve_id": "CVE-2024-0003",
+          "description": "Buffer overflow in PLC firmware",
+          "cvss_impact": 7.2,
+          "cvss_exploitability": 6.5,
+          "exploit_present": false,
+          "patch_cost": 25.0,
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "id": "db_001",
+      "name": "Historical Database",
+      "importance_score": 0.16666666666666666,
+      "vulnerabilities": [
+        {
+          "cve_id": "CVE-2024-0004",
+          "description": "Hardcoded credentials in database",
+          "cvss_impact": 8.8,
+          "cvss_exploitability": 9.0,
+          "exploit_present": true,
+          "patch_cost": 10.0,
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "id": "sensor_001",
+      "name": "Field Sensors",
+      "importance_score": 0.16666666666666663,
+      "vulnerabilities": [
+        {
+          "cve_id": "CVE-2024-0005",
+          "description": "Sensor data manipulation vulnerability",
+          "cvss_impact": 6.5,
+          "cvss_exploitability": 5.8,
+          "exploit_present": false,
+          "patch_cost": 12.0,
+          "dependencies": []
+        }
+      ]
+    }
+  ],
+  "functional_dependencies": [
+    [
+      0,
+      1,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ]
+  ],
+  "network_topology": [
+    [
+      0,
+      1,
+      1,
+      0
+    ],
+    [
+      1,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ]
+  ],
+  "weights": {
+    "functional_weight": 0.7,
+    "topological_weight": 0.3
+  },
+  "patch_groups": [
+    {
+      "group_id": "PG_0000",
+      "cve_ids": [
+        "CVE-2024-0001",
+        "CVE-2024-0002"
+      ],
+      "total_cost": 35.0,
+      "aggregate_impact": 12.9375
+    },
+    {
+      "group_id": "PG_0001",
+      "cve_ids": [
+        "CVE-2024-0003"
+      ],
+      "total_cost": 25.0,
+      "aggregate_impact": 6.85
+    },
+    {
+      "group_id": "PG_0002",
+      "cve_ids": [
+        "CVE-2024-0004"
+      ],
+      "total_cost": 10.0,
+      "aggregate_impact": 13.350000000000001
+    },
+    {
+      "group_id": "PG_0003",
+      "cve_ids": [
+        "CVE-2024-0005"
+      ],
+      "total_cost": 12.0,
+      "aggregate_impact": 6.15
+    }
+  ],
+  "players": [
+    {
+      "player_id": "defender_1",
+      "role": "DEFENDER",
+      "resource_budget": 100.0
+    },
+    {
+      "player_id": "attacker_1",
+      "role": "ATTACKER",
+      "resource_budget": 50.0
+    }
+  ]
+}

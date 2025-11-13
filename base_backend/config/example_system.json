@@ -1,0 +1,101 @@
+{
+  "system_name": "Industrial SCADA System",
+  "system_class": "Industrial Control System",
+  "description": "Example SCADA system with HMI, PLC, and database components",
+  "subsystems": [
+    {
+      "id": "hmi_001",
+      "name": "Human Machine Interface",
+      "connected_to": ["plc_001", "db_001"],
+      "functional_dependencies": ["plc_001", "db_001"]
+    },
+    {
+      "id": "plc_001",
+      "name": "Programmable Logic Controller",
+      "connected_to": ["hmi_001", "sensor_001"],
+      "functional_dependencies": []
+    },
+    {
+      "id": "db_001",
+      "name": "Historical Database",
+      "connected_to": ["hmi_001"],
+      "functional_dependencies": []
+    },
+    {
+      "id": "sensor_001",
+      "name": "Field Sensors",
+      "connected_to": ["plc_001"],
+      "functional_dependencies": ["plc_001"]
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "cve_id": "CVE-2024-0001",
+      "description": "SQL Injection in HMI web interface",
+      "subsystem_id": "hmi_001",
+      "cvss_impact": 8.5,
+      "cvss_exploitability": 7.8,
+      "exploit_present": true,
+      "patch_cost": 15.0,
+      "dependencies": []
+    },
+    {
+      "cve_id": "CVE-2024-0002",
+      "description": "Authentication bypass in HMI",
+      "subsystem_id": "hmi_001",
+      "cvss_impact": 9.1,
+      "cvss_exploitability": 8.5,
+      "exploit_present": true,
+      "patch_cost": 20.0,
+      "dependencies": ["CVE-2024-0001"]
+    },
+    {
+      "cve_id": "CVE-2024-0003",
+      "description": "Buffer overflow in PLC firmware",
+      "subsystem_id": "plc_001",
+      "cvss_impact": 7.2,
+      "cvss_exploitability": 6.5,
+      "exploit_present": false,
+      "patch_cost": 25.0,
+      "dependencies": []
+    },
+    {
+      "cve_id": "CVE-2024-0004",
+      "description": "Hardcoded credentials in database",
+      "subsystem_id": "db_001",
+      "cvss_impact": 8.8,
+      "cvss_exploitability": 9.0,
+      "exploit_present": true,
+      "patch_cost": 10.0,
+      "dependencies": []
+    },
+    {
+      "cve_id": "CVE-2024-0005",
+      "description": "Sensor data manipulation vulnerability",
+      "subsystem_id": "sensor_001",
+      "cvss_impact": 6.5,
+      "cvss_exploitability": 5.8,
+      "exploit_present": false,
+      "patch_cost": 12.0,
+      "dependencies": []
+    }
+  ],
+  "players": [
+    {
+      "player_id": "defender_1",
+      "role": "DEFENDER",
+      "resource_budget": 100.0,
+      "team_id": null
+    },
+    {
+      "player_id": "attacker_1",
+      "role": "ATTACKER",
+      "resource_budget": 50.0,
+      "team_id": null
+    }
+  ],
+  "weights": {
+    "functional_weight": 0.7,
+    "topological_weight": 0.3
+  }
+}

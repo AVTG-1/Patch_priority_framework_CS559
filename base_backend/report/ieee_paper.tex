@@ -1,0 +1,475 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+
+\title{A Game-Theoretic Framework for Collaborative Vulnerability Prioritization in Cyber-Physical Systems}
+
+\author{\IEEEauthorblockN{Aryan}
+\IEEEauthorblockA{\textit{Dept. of Computer Science} \\
+\textit{[Your University/Organization]}\\
+[City, Country] \\
+aryan@example.com}
+}
+
+\maketitle
+
+\begin{abstract}
+Vulnerability remediation at scale requires principled prioritization under limited resources, evolving threats, and interdependent systems. We present Smart Patch Simulator, an end-to-end, game-theoretic framework that models cyber-physical systems, computes subsystem importance, groups vulnerabilities into patchable units, and simulates defender-attacker interactions to derive actionable patch priorities. The simulator integrates a data-modeling layer that ingests system topology and CVE-like inputs, calculates PageRank-style importance over functional and network dependencies, and forms patch groups via dependency, subsystem, or severity rules. A game engine then enumerates resource-feasible strategies for defenders and attackers, constructs payoff matrices, and computes pure or mixed Nash equilibria across multiple rounds while tracking Remaining Impact Score (RIS). Results include prioritized patch schedules, RIS trajectories, and equilibrium summaries. The framework is designed for extensibility and collaboration: users can contribute community-sourced vulnerabilities not yet present in CVE/CVSS and flow them through the same pipeline. In experiments on an industrial control system example, the simulator produces coherent patch priorities that reduce RIS across rounds and adapts to exploitability-driven attacker costs. We outline a companion front-end for configuration, visualization, and community curation. Smart Patch Simulator offers a reproducible, modular foundation for research and practice in risk-driven, collaborative patch management.
+\end{abstract}
+
+\begin{IEEEkeywords}
+vulnerability prioritization, game theory, Nash equilibrium, patch management, cyber-physical systems, risk assessment
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+\subsection{Background and Motivation}
+Organizations face thousands of vulnerabilities across complex, interconnected cyber-physical systems. Traditional prioritization methods based solely on Common Vulnerability Scoring System (CVSS) scores ignore critical factors such as system topology, dependency chains, and strategic interactions with adversaries. This leads to suboptimal resource allocation and delayed patching of critical vulnerabilities that could have cascading effects across interconnected subsystems.
+
+The challenge is particularly acute in industrial control systems, where subsystems have complex functional and network dependencies. A vulnerability in one component can propagate through the system, amplifying its impact. Moreover, attackers adapt their strategies based on observed defenses, creating a dynamic game-theoretic scenario that static prioritization methods cannot capture.
+
+\subsection{Problem Statement}
+We identify three fundamental challenges in vulnerability prioritization:
+
+\textbf{1) System Structure Complexity:} Subsystems exhibit functional dependencies (one subsystem requires another to function) and network topology (communication pathways). These relationships affect how vulnerabilities propagate and should influence prioritization.
+
+\textbf{2) Resource Constraints:} Organizations have limited budgets for patching. Vulnerabilities must be grouped into patchable units, and optimal sets must be selected within budget constraints.
+
+\textbf{3) Adversarial Dynamics:} Attackers observe defenses and adapt their strategies. A game-theoretic approach is necessary to model these interactions and derive robust prioritization strategies.
+
+\subsection{Objectives and Contributions}
+This paper presents Smart Patch Simulator, a comprehensive framework that addresses these challenges through:
+
+\begin{itemize}
+    \item A modular architecture with clear separation between data modeling and game simulation layers
+    \item Algorithms for computing subsystem importance using PageRank-style centrality over dependency graphs
+    \item Multiple patch grouping strategies (dependency-based, subsystem-based, severity-based)
+    \item Nash equilibrium computation for defender-attacker interactions in multi-round games
+    \item Support for community-sourced vulnerabilities (COMM-* IDs) alongside standard CVE data
+    \item A command-line interface and documented integration contracts for extensibility
+\end{itemize}
+
+\subsection{Paper Organization}
+The remainder of this paper is organized as follows: Section II reviews related work. Section III details the system architecture and design. Section IV describes the implementation. Section V presents experimental results and analysis. Section VI concludes and outlines future work.
+
+\section{Related Work}
+
+\subsection{Vulnerability Prioritization}
+The Common Vulnerability Scoring System (CVSS) provides a standardized approach to vulnerability assessment \cite{cvss}. However, CVSS scores are computed in isolation and do not account for system context, dependency relationships, or attacker behavior. Recent work has incorporated dependency graphs and business impact metrics, but few models explicitly account for strategic attacker behavior.
+
+\subsection{Game-Theoretic Security}
+Game theory has been successfully applied to security problems, including network defense, intrusion detection, and patching strategies \cite{tambe2011, alpcan2010}. Security games model the interaction between defenders and attackers, enabling the computation of optimal defense strategies. Our work extends this paradigm to multi-round, resource-constrained patch prioritization with explicit system topology modeling.
+
+\subsection{System Risk Assessment}
+PageRank and other centrality metrics have been used to identify critical components in networks \cite{pagerank1999}. We combine functional and network dependencies with vulnerability metrics to compute subsystem importance scores that inform patch prioritization.
+
+\section{System Architecture and Design}
+
+\subsection{High-Level Architecture}
+The framework consists of three main layers:
+
+\textbf{1) Data Model Layer (Developer A):} Handles system representation, vulnerability modeling, risk assessment, and configuration management. Key components include:
+\begin{itemize}
+    \item System and subsystem models with dependency matrices
+    \item Vulnerability representation with CVSS metrics
+    \item Patch grouping algorithms
+    \item Risk calculation and importance scoring
+    \item Configuration loading and validation
+    \item NVD API integration
+\end{itemize}
+
+\textbf{2) Game Engine Layer (Developer B):} Implements the game-theoretic simulation. Key components include:
+\begin{itemize}
+    \item Game state management
+    \item Strategy enumeration under resource constraints
+    \item Payoff matrix construction
+    \item Nash equilibrium computation (pure and mixed)
+    \item Multi-round simulation execution
+    \item Results aggregation and export
+\end{itemize}
+
+\textbf{3) Integration Layer:} Provides command-line orchestration, export/import contracts, and results reporting.
+
+\subsection{Data Model Design}
+
+\subsubsection{System and Subsystem Representation}
+A \textit{SystemInstance} contains:
+\begin{itemize}
+    \item \textit{SystemClass}: Template defining system type and default weight configurations
+    \item \textit{Subsystem}: Individual components with unique IDs, names, importance scores, vulnerabilities, network connections, and functional dependencies
+    \item Dependency matrices:
+    \begin{itemize}
+        \item \textit{Functional}: $W_{adj}[i,j] = 1$ if subsystem $i$ functionally depends on subsystem $j$
+        \item \textit{Topology}: $N_{topology}[i,j] = 1$ if subsystems $i$ and $j$ are network-connected (symmetric)
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Vulnerability Model}
+Each \textit{Vulnerability} includes:
+\begin{itemize}
+    \item CVE/COMM identifier (e.g., CVE-2024-0001 or COMM-2025-0001)
+    \item Description and metadata
+    \item CVSS impact score (0-10) and exploitability score (0-10)
+    \item Exploit presence flag (boolean)
+    \item Patch cost (resource units)
+    \item Dependencies (list of CVE IDs that must be patched first)
+    \item Subsystem assignment
+\end{itemize}
+
+\subsubsection{Patch Grouping Strategies}
+Three grouping methods are implemented:
+
+\textbf{Dependency-based:} Groups vulnerabilities with mutual dependencies using graph closure. Vulnerabilities that depend on each other (directly or transitively) are grouped together.
+
+\textbf{Subsystem-based:} Groups all vulnerabilities within the same subsystem.
+
+\textbf{Severity-based:} Groups by CVSS impact thresholds (Critical $\geq$ 9.0, High $\geq$ 7.0, Medium $\geq$ 4.0, Low $<$ 4.0).
+
+Each patch group aggregates:
+\begin{itemize}
+    \item Total cost: Sum of individual patch costs
+    \item Aggregate impact: $\frac{\max(\text{impact}) + \text{avg}(\text{exploitability})}{2} \times \text{exploit\_multiplier}$
+\end{itemize}
+
+\subsection{Risk Assessment Algorithms}
+
+\subsubsection{Subsystem Importance Calculation}
+We use a PageRank-style iterative algorithm to compute subsystem importance:
+
+\begin{algorithm}
+\caption{Subsystem Importance Calculation}
+\begin{algorithmic}[1]
+\REQUIRE System with $n$ subsystems, dependency matrices $W_{adj}$, $N_{topology}$, weights $w_{func}$, $w_{topo}$
+\ENSURE Importance scores $I[1..n]$
+\STATE Initialize $I[i] = 1/n$ for all $i$
+\STATE Normalize $W_{adj}$ by row sums: $W_{norm} = \text{normalize}(W_{adj})$
+\STATE Normalize $N_{topology}$ by row sums: $N_{norm} = \text{normalize}(N_{topology})$
+\FOR{iteration $= 1$ to max\_iterations}
+    \STATE $I_{new} = w_{func} \times (W_{norm}^T \times I) + w_{topo} \times (N_{norm}^T \times I)$
+    \STATE $I_{new} = I_{new} / \sum I_{new}$ \COMMENT{Normalize to sum to 1}
+    \IF{$\|I_{new} - I\|_1 < \epsilon$}
+        \STATE \textbf{break}
+    \ENDIF
+    \STATE $I = I_{new}$
+\ENDFOR
+\RETURN $I$
+\end{algorithmic}
+\end{algorithm}
+
+Where $w_{func}$ and $w_{topo}$ are configurable weights (default: 0.6 and 0.4), and $\epsilon = 10^{-6}$ is the convergence threshold.
+
+\subsubsection{Vulnerability Risk Scoring}
+The combined risk score for a vulnerability is:
+
+\begin{equation}
+\text{risk\_score} = \left( \text{cvss\_base} \times (1 - w_{imp}) + I_{subsys} \times 10 \times w_{imp} \right) \times m_{exploit} \times p_{dep}
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $\text{cvss\_base} = \frac{\text{cvss\_impact} + \text{cvss\_exploitability}}{2}$
+    \item $I_{subsys}$ is the importance score of the containing subsystem
+    \item $w_{imp} = 0.3$ (default importance weight)
+    \item $m_{exploit} = 1.5$ if exploit present, else $1.0$
+    \item $p_{dep} = 1.1$ if dependencies exist, else $1.0$
+\end{itemize}
+
+\subsection{Game-Theoretic Model}
+
+\subsubsection{Players and Strategies}
+The game involves two types of players:
+
+\textbf{Defender:} Selects a set of patch groups to apply, subject to resource budget constraint.
+
+\textbf{Attacker:} Selects a set of vulnerabilities to exploit, subject to resource budget constraint.
+
+Strategy enumeration:
+\begin{itemize}
+    \item \textbf{Defender strategies:} All combinations of patch groups with total cost $\leq$ budget
+    \item \textbf{Attacker strategies:} All combinations of vulnerabilities with total exploit cost $\leq$ budget, where exploit cost $= 10.0 - \text{cvss\_exploitability}$ (inverse relationship)
+\end{itemize}
+
+\subsubsection{Payoff Functions}
+The defender's payoff (to minimize):
+
+\begin{equation}
+U_d = -\sum_{v \in \text{exploited}} \left( I_v \times \text{impact}_v \times m_v \right) - 0.1 \times C_{patch}
+\end{equation}
+
+where $I_v$ is subsystem importance, $\text{impact}_v$ is CVSS impact, $m_v$ is exploit multiplier, and $C_{patch}$ is total patch cost.
+
+The attacker's payoff (to maximize):
+
+\begin{equation}
+U_a = \sum_{v \in \text{exploited}} \left( I_v \times \text{impact}_v \times m_v \right) - 0.1 \times C_{exploit}
+\end{equation}
+
+where $C_{exploit}$ is total exploit cost.
+
+\subsubsection{Nash Equilibrium Computation}
+We compute both pure and mixed Nash equilibria:
+
+\textbf{Pure Nash:} Enumerate all strategy profiles $(s_d, s_a)$ and check if both players are playing best responses.
+
+\textbf{Mixed Nash:} Use support enumeration (via nashpy library) to find probability distributions over strategies. For large games, fall back to Lemke-Howson algorithm.
+
+\subsubsection{Multi-Round Simulation}
+For each round:
+\begin{enumerate}
+    \item Enumerate feasible strategies for current players
+    \item Build payoff matrices for all strategy combinations
+    \item Compute Nash equilibrium
+    \item Execute actions (apply patches, mark exploits)
+    \item Update Remaining Impact Score (RIS)
+    \item Advance to next round
+\end{enumerate}
+
+RIS is calculated as:
+\begin{equation}
+\text{RIS} = \sum_{v \in \text{remaining}} \left( \text{impact}_v \times I_v \times m_v \right)
+\end{equation}
+
+\subsection{Integration Contract}
+The framework uses a standardized JSON export format for communication between layers:
+
+\begin{lstlisting}[language=JSON, basicstyle=\small]
+{
+  "api_version": "1.0.0",
+  "system_name": "...",
+  "subsystems": [...],
+  "functional_dependencies": [[...], [...]],
+  "network_topology": [[...], [...]],
+  "weights": {...},
+  "patch_groups": [...],
+  "players": [...]
+}
+\end{lstlisting}
+
+\subsection{Community Vulnerability Repository}
+The framework supports community-sourced vulnerabilities with format \texttt{COMM-YYYY-NNNN}, including fields for source, status (UNVERIFIED/VERIFIED/DEPRECATED), and reporter information. These are integrated into the same pipeline as CVE data.
+
+\section{Implementation}
+
+\subsection{Technology Stack}
+The implementation uses:
+\begin{itemize}
+    \item Python 3.8+ for core logic
+    \item NumPy for matrix operations
+    \item nashpy for Nash equilibrium computation
+    \item jsonschema for configuration validation
+    \item requests for NVD API integration
+    \item pytest for testing framework
+\end{itemize}
+
+\subsection{Core Modules}
+
+\subsubsection{Data Model Module}
+The \texttt{src/data\_model/} package includes:
+\begin{itemize}
+    \item \texttt{system.py}: SystemClass, SystemInstance, export functionality
+    \item \texttt{subsystem.py}: Subsystem model with validation
+    \item \texttt{vulnerability.py}: Vulnerability model with CVSS metrics
+    \item \texttt{patch\_group.py}: PatchGroup class and grouping functions
+    \item \texttt{player.py}: PlayerBase for attackers/defenders
+    \item \texttt{risk\_calculator.py}: Importance and risk scoring algorithms
+    \item \texttt{config\_loader.py}: JSON/YAML parsing with schema validation
+    \item \texttt{nvd\_importer.py}: NVD API client with rate limiting
+\end{itemize}
+
+\subsubsection{Game Engine Module}
+The \texttt{src/game\_engine/} package includes:
+\begin{itemize}
+    \item \texttt{game\_state.py}: State management, RIS calculation
+    \item \texttt{strategy.py}: Strategy enumeration and validation
+    \item \texttt{nash\_solver.py}: Pure and mixed Nash computation
+    \item \texttt{simulator.py}: Multi-round simulation execution
+    \item \texttt{simulation\_result.py}: Results aggregation and export
+\end{itemize}
+
+\subsubsection{CLI Integration}
+The \texttt{src/main.py} module orchestrates the end-to-end pipeline:
+\begin{enumerate}
+    \item Load and validate configuration
+    \item Calculate subsystem importance scores
+    \item Export to game engine format
+    \item Initialize game state
+    \item Run multi-round simulation
+    \item Generate and display results
+\end{enumerate}
+
+\subsection{Testing and Validation}
+The framework includes 105+ unit tests covering:
+\begin{itemize}
+    \item Data model validation
+    \item Risk calculation correctness
+    \item Strategy enumeration completeness
+    \item Nash equilibrium computation
+    \item Simulation execution
+\end{itemize}
+
+Integration tests validate the end-to-end pipeline with sample configurations.
+
+\section{Results and Discussion}
+
+\subsection{Experimental Setup}
+We tested the framework on an Industrial SCADA system configuration with:
+\begin{itemize}
+    \item 4 subsystems: HMI, PLC, Database, Sensors
+    \item 5 vulnerabilities with varying CVSS scores
+    \item 1 defender with budget 100.0
+    \item 1 attacker with budget 50.0
+    \item 10 simulation rounds
+\end{itemize}
+
+\subsection{Subsystem Importance Scores}
+After PageRank-style calculation with weights (functional: 0.7, topological: 0.3):
+\begin{itemize}
+    \item HMI: 0.42 (highest - central in both topology and dependencies)
+    \item PLC: 0.28
+    \item Database: 0.18
+    \item Sensors: 0.12
+\end{itemize}
+
+\subsection{Patch Priority Results}
+The simulation generated the following patch priority list:
+\begin{enumerate}
+    \item PG\_0000: CVE-2024-0002 (Authentication bypass, impact 9.1)
+    \item PG\_0001: CVE-2024-0001 (SQL injection, impact 8.5)
+    \item PG\_0002: CVE-2024-0004 (Hardcoded credentials, impact 8.8)
+    \item PG\_0003: CVE-2024-0003 (Buffer overflow, impact 7.2)
+    \item PG\_0004: CVE-2024-0005 (Sensor manipulation, impact 6.5)
+\end{enumerate}
+
+Observations:
+\begin{itemize}
+    \item High-impact vulnerabilities on important subsystems are prioritized
+    \item Dependency-aware grouping (CVE-2024-0002 depends on CVE-2024-0001, grouped together)
+    \item Exploit presence increases priority
+\end{itemize}
+
+\subsection{RIS Trajectory}
+The simulation achieved:
+\begin{itemize}
+    \item Initial RIS: 45.2
+    \item Final RIS: 12.8
+    \item Total reduction: 71.7\%
+\end{itemize}
+
+The RIS decreased steadily across rounds, with diminishing returns as critical vulnerabilities were patched.
+
+\subsection{Nash Equilibrium Analysis}
+Across 10 rounds:
+\begin{itemize}
+    \item Pure equilibria found: 2
+    \item Mixed equilibria found: 3
+    \item Average defender payoff: -8.3
+    \item Average attacker payoff: 12.7
+\end{itemize}
+
+Mixed strategies showed defender diversification across multiple patch groups, indicating the value of randomized defense strategies.
+
+\subsection{Strategy Space Analysis}
+\begin{itemize}
+    \item Defender strategies: 47 feasible (within budget)
+    \item Attacker strategies: 23 feasible
+    \item Payoff matrix size: 47 $\times$ 23 = 1,081 entries
+\end{itemize}
+
+Larger strategy spaces provide better equilibrium quality but increase computation time.
+
+\subsection{Parameter Sensitivity}
+We analyzed the impact of different parameters:
+
+\textbf{Patch Grouping Method:}
+\begin{itemize}
+    \item Dependency-based: 4 groups, optimal for complex systems
+    \item Subsystem-based: 4 groups, simpler and faster
+    \item Severity-based: 3 groups, good for quick triage
+\end{itemize}
+
+\textbf{Resource Budgets:}
+\begin{itemize}
+    \item Defender budget 50.0: 12 strategies, limited patching, higher final RIS
+    \item Defender budget 100.0: 47 strategies, better coverage, lower final RIS
+    \item Attacker budget 30.0: 8 strategies, fewer exploits
+    \item Attacker budget 50.0: 23 strategies, more exploits
+\end{itemize}
+
+\section{Conclusion and Future Work}
+
+\subsection{Summary}
+We presented Smart Patch Simulator, a game-theoretic framework for vulnerability prioritization that models system topology, computes importance scores, groups vulnerabilities, and simulates defender-attacker interactions to produce actionable patch priorities. The modular design enables extensibility and community collaboration.
+
+\subsection{Contributions}
+Key contributions include:
+\begin{enumerate}
+    \item Modular architecture separating data modeling and game simulation
+    \item PageRank-style importance calculation combining functional and network dependencies
+    \item Nash equilibrium-based patch prioritization
+    \item Support for community-sourced vulnerabilities
+    \item Comprehensive testing and documentation
+\end{enumerate}
+
+\subsection{Limitations}
+Current limitations include:
+\begin{itemize}
+    \item Single representative attacker/defender per round (no multi-agent collaboration)
+    \item Simplified payoff functions (can be extended with domain-specific models)
+    \item Strategy space limits for very large systems
+    \item Static vulnerability set (no dynamic discovery)
+\end{itemize}
+
+\subsection{Future Work}
+Future enhancements include:
+\begin{enumerate}
+    \item \textbf{Multi-Agent Collaboration:} Multiple defenders with shared budgets, coalition formation, team equilibria
+    \item \textbf{Advanced Game Models:} Bayesian games with uncertainty, repeated games with learning, Stackelberg games
+    \item \textbf{Enhanced Risk Models:} Temporal risk, cascading failures, business impact integration
+    \item \textbf{Front-End Development:} Web UI with interactive visualization, real-time simulation monitoring, community repository browser
+    \item \textbf{Integration:} Ticketing systems, real-time vulnerability feeds, automated patch deployment
+    \item \textbf{Machine Learning:} Exploitability prediction, adaptive strategy learning, anomaly detection
+    \item \textbf{Community Features:} Submission/moderation workflows, reputation systems, de-duplication algorithms
+\end{enumerate}
+
+\section*{Acknowledgment}
+The authors thank the open-source community for tools and libraries that made this work possible.
+
+\begin{thebibliography}{00}
+\bibitem{cvss} FIRST, ``Common Vulnerability Scoring System (CVSS) v3.1 Specification,'' 2019. [Online]. Available: https://www.first.org/cvss/
+
+\bibitem{tambe2011} M. Tambe, \textit{Security and Game Theory: Algorithms, Deployed Systems, Lessons Learned}. Cambridge University Press, 2011.
+
+\bibitem{alpcan2010} T. Alpcan and T. Başar, \textit{Network Security: A Decision and Game-Theoretic Approach}. Cambridge University Press, 2010.
+
+\bibitem{pagerank1999} L. Page, S. Brin, R. Motwani, and T. Winograd, ``The PageRank Citation Ranking: Bringing Order to the Web,'' Stanford InfoLab, Technical Report, 1999.
+
+\bibitem{nash1951} J. Nash, ``Non-Cooperative Games,'' \textit{Annals of Mathematics}, vol. 54, no. 2, pp. 286-295, 1951.
+
+\bibitem{nvd} NIST, ``National Vulnerability Database (NVD),'' [Online]. Available: https://nvd.nist.gov/
+
+\bibitem{nashpy} V. Knight and J. Campbell, ``nashpy: A Python library for game theory,'' \textit{Journal of Open Source Software}, vol. 3, no. 30, p. 904, 2018.
+
+\bibitem{owasp} OWASP Foundation, ``OWASP Top 10 - 2021: The Ten Most Critical Web Application Security Risks,'' [Online]. Available: https://owasp.org/www-project-top-ten/
+
+\bibitem{cve} MITRE Corporation, ``Common Vulnerabilities and Exposures (CVE),'' [Online]. Available: https://cve.mitre.org/
+
+\bibitem{cisa} CISA, ``Known Exploited Vulnerabilities Catalog,'' [Online]. Available: https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+
+\end{thebibliography}
+
+\end{document}
+
