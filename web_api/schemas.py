@@ -173,3 +173,65 @@ class MessageResponse(BaseModel):
     """Schema for simple message responses"""
     message: str
     status: str = "success"
+
+
+# Admin Schemas
+class UserListResponse(BaseModel):
+    """Schema for user list with additional metadata (admin view)"""
+    id: int
+    username: str
+    email: str
+    is_admin: bool
+    created_at: datetime
+    system_count: int
+    simulation_count: int
+    vulnerability_count: int
+
+
+class ActivitySummary(BaseModel):
+    """Schema for activity summary"""
+    new_users: int
+    new_systems: int
+    new_simulations: int
+    new_vulnerabilities: int
+
+
+class TotalCounts(BaseModel):
+    """Schema for total counts"""
+    users: int
+    systems: int
+    simulations: int
+    vulnerabilities: int
+
+
+class UserDistribution(BaseModel):
+    """Schema for user distribution"""
+    admin_users: int
+    regular_users: int
+
+
+class VulnerabilityStatusDistribution(BaseModel):
+    """Schema for vulnerability status distribution"""
+    unverified: int
+    verified: int
+    deprecated: int
+
+
+class TopUser(BaseModel):
+    """Schema for top user statistics"""
+    user_id: int
+    username: str
+    simulation_count: Optional[int] = None
+    contribution_count: Optional[int] = None
+
+
+class AdminStatsResponse(BaseModel):
+    """Schema for admin statistics response"""
+    timestamp: datetime
+    total_counts: TotalCounts
+    user_distribution: UserDistribution
+    vulnerability_status: VulnerabilityStatusDistribution
+    recent_activity_7d: ActivitySummary
+    recent_activity_30d: ActivitySummary
+    most_active_users: List[TopUser]
+    top_contributors: List[TopUser]

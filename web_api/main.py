@@ -36,7 +36,7 @@ from schemas import (
 )
 
 # Import routers
-from routers import systems, vulnerabilities, simulations
+from routers import systems, vulnerabilities, simulations, admin
 
 
 # Lifespan event handler for startup/shutdown
@@ -84,6 +84,7 @@ app.add_middleware(
 app.include_router(systems.router)
 app.include_router(vulnerabilities.router)
 app.include_router(simulations.router)
+app.include_router(admin.router)
 
 
 @app.get("/health")
