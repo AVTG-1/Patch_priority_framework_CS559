@@ -5,7 +5,7 @@ Defines data models for API endpoints.
 """
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
-from typing import Optional
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 
@@ -76,8 +76,20 @@ class SystemConfigResponse(BaseModel):
 # Simulation Schemas
 class SimulationRunCreate(BaseModel):
     """Schema for creating simulation run"""
-    system_config_id: int
-    parameters_json: str = Field(..., description="Simulation parameters as JSON")
+    system_id: int = Field(..., description="System configuration ID to simulate")
+    rounds: int = Field(default=10, ge=1, le=100, description="Number of simulation rounds (1-100)")
+    defender_budget: Optional[float] = Field(None, ge=0.0, description="Defender resource budget")
+    attacker_budget: Optional[float] = Field(None, ge=0.0, description="Attacker resource budget")
+    patch_grouping_method: str = Field(default="dependencies", description="Patch grouping strategy")
+
+    @field_validator('patch_grouping_method')
+    @classmethod
+    def validate_grouping_method(cls, v):
+        """Validate patch grouping method"""
+        allowed = ['dependencies', 'subsystem', 'severity']
+        if v not in allowed:
+            raise ValueError(f'Patch grouping method must be one of: {", ".join(allowed)}')
+        return v
 
 
 class SimulationRunResponse(BaseModel):
@@ -89,6 +101,31 @@ class SimulationRunResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SimulationSummary(BaseModel):
+    """Schema for simulation summary response"""
+    simulation_id: int
+    system_id: int
+    system_name: str
+    rounds: int
+    initial_ris: float
+    final_ris: float
+    ris_reduction: float
+    ris_reduction_percentage: float
+    total_vulnerabilities_patched: int
+    patch_priority_list: List[str]
+    created_at: datetime
+
+
+class SimulationDetailResponse(BaseModel):
+    """Schema for detailed simulation response"""
+    id: int
+    system_config_id: int
+    system_name: str
+    parameters: Dict[str, Any]
+    results: Dict[str, Any]
+    created_at: datetime
 
 
 # Community Vulnerability Schemas
