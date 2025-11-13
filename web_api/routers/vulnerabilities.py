@@ -18,9 +18,9 @@ sys.path.insert(0, str(base_backend_path))
 from data_model.nvd_importer import NVDImporter
 
 from database import get_db
-from models import User, CommunityVulnerability
-from auth import get_current_user
-from schemas import CommunityVulnerabilityResponse
+from models import User, CommunityVulnerability, VulnerabilityStatus
+from auth import get_current_user, get_current_admin_user
+from schemas import CommunityVulnerabilityResponse, CommunityVulnerabilityCreate
 
 router = APIRouter(
     prefix="/api/vulnerabilities",
@@ -96,6 +96,36 @@ def vulnerability_to_dict(vuln) -> Dict[str, Any]:
         "dependencies": vuln.dependencies,
         "custom_extras": vuln.custom_extras
     }
+
+
+def generate_comm_id(db: Session) -> str:
+    """
+    Generate a unique community vulnerability ID in format COMM-YYYY-NNNN.
+
+    Args:
+        db: Database session
+
+    Returns:
+        str: Generated community ID (e.g., COMM-2025-0001)
+    """
+    current_year = datetime.utcnow().year
+
+    # Find the highest number for this year
+    prefix = f"COMM-{current_year}-"
+    existing = db.query(CommunityVulnerability).filter(
+        CommunityVulnerability.comm_id.like(f"{prefix}%")
+    ).order_by(CommunityVulnerability.comm_id.desc()).first()
+
+    if existing:
+        # Extract the number from the last ID
+        last_number = int(existing.comm_id.split("-")[-1])
+        new_number = last_number + 1
+    else:
+        # First vulnerability for this year
+        new_number = 1
+
+    # Format as COMM-YYYY-NNNN (4 digits with leading zeros)
+    return f"{prefix}{new_number:04d}"
 
 
 @router.get("/nvd")
@@ -265,6 +295,177 @@ async def get_community_vulnerability(
     vulnerability.vote_score = vulnerability.upvotes - vulnerability.downvotes
 
     return vulnerability
+
+
+@router.post("/community", response_model=CommunityVulnerabilityResponse, status_code=status.HTTP_201_CREATED)
+async def submit_community_vulnerability(
+    vuln_data: CommunityVulnerabilityCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Submit a new community vulnerability.
+
+    Requires authentication. Automatically generates a unique COMM-YYYY-NNNN ID
+    and sets status to UNVERIFIED.
+
+    Args:
+        vuln_data: Vulnerability data (description, CVSS scores, etc.)
+        current_user: Authenticated user (from JWT token)
+        db: Database session
+
+    Returns:
+        CommunityVulnerabilityResponse: Created vulnerability with generated ID
+
+    Raises:
+        HTTPException 400: If comm_id already exists
+        HTTPException 401: If not authenticated
+        HTTPException 422: If validation fails
+    """
+    # Check if comm_id already exists (if provided in vuln_data)
+    existing = db.query(CommunityVulnerability).filter(
+        CommunityVulnerability.comm_id == vuln_data.comm_id
+    ).first()
+
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Community vulnerability {vuln_data.comm_id} already exists"
+        )
+
+    # Generate unique COMM-YYYY-NNNN ID if not provided
+    comm_id = vuln_data.comm_id if vuln_data.comm_id else generate_comm_id(db)
+
+    # Create new community vulnerability
+    new_vulnerability = CommunityVulnerability(
+        comm_id=comm_id,
+        reporter_id=current_user.id,
+        description=vuln_data.description,
+        cvss_impact=vuln_data.cvss_impact,
+        cvss_exploitability=vuln_data.cvss_exploitability,
+        status=VulnerabilityStatus.UNVERIFIED,
+        affected_subsystem_type=vuln_data.affected_subsystem_type,
+        exploit_present=vuln_data.exploit_present,
+        patch_cost_estimate=vuln_data.patch_cost_estimate,
+        upvotes=0,
+        downvotes=0
+    )
+
+    db.add(new_vulnerability)
+    db.commit()
+    db.refresh(new_vulnerability)
+
+    # Add reporter username and vote_score
+    new_vulnerability.reporter_username = current_user.username
+    new_vulnerability.vote_score = 0
+
+    return new_vulnerability
+
+
+@router.put("/community/{comm_id}/verify", response_model=CommunityVulnerabilityResponse)
+async def verify_community_vulnerability(
+    comm_id: str,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Verify a community vulnerability (admin only).
+
+    Changes the status from UNVERIFIED to VERIFIED. Only admin users can verify
+    vulnerabilities.
+
+    Args:
+        comm_id: Community vulnerability identifier
+        current_user: Authenticated admin user
+        db: Database session
+
+    Returns:
+        CommunityVulnerabilityResponse: Updated vulnerability with VERIFIED status
+
+    Raises:
+        HTTPException 401: If not authenticated
+        HTTPException 403: If user is not admin
+        HTTPException 404: If vulnerability not found
+    """
+    vulnerability = db.query(CommunityVulnerability).filter(
+        CommunityVulnerability.comm_id == comm_id
+    ).first()
+
+    if not vulnerability:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Community vulnerability {comm_id} not found"
+        )
+
+    # Update status to VERIFIED
+    vulnerability.status = VulnerabilityStatus.VERIFIED
+
+    db.commit()
+    db.refresh(vulnerability)
+
+    # Add reporter username and vote_score
+    if vulnerability.reporter:
+        vulnerability.reporter_username = vulnerability.reporter.username
+    else:
+        vulnerability.reporter_username = None
+    vulnerability.vote_score = vulnerability.upvotes - vulnerability.downvotes
+
+    return vulnerability
+
+
+@router.delete("/community/{comm_id}", status_code=status.HTTP_200_OK)
+async def deprecate_community_vulnerability(
+    comm_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Mark a community vulnerability as DEPRECATED.
+
+    Admin users can deprecate any vulnerability. Regular users can only deprecate
+    their own vulnerabilities. The vulnerability is not deleted, just marked as
+    DEPRECATED.
+
+    Args:
+        comm_id: Community vulnerability identifier
+        current_user: Authenticated user
+        db: Database session
+
+    Returns:
+        dict: Success message
+
+    Raises:
+        HTTPException 401: If not authenticated
+        HTTPException 403: If user is not admin and not the reporter
+        HTTPException 404: If vulnerability not found
+    """
+    vulnerability = db.query(CommunityVulnerability).filter(
+        CommunityVulnerability.comm_id == comm_id
+    ).first()
+
+    if not vulnerability:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Community vulnerability {comm_id} not found"
+        )
+
+    # Check permissions: admin or reporter
+    if not current_user.is_admin and vulnerability.reporter_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins or the reporter can deprecate this vulnerability"
+        )
+
+    # Update status to DEPRECATED
+    vulnerability.status = VulnerabilityStatus.DEPRECATED
+
+    db.commit()
+
+    return {
+        "message": f"Community vulnerability {comm_id} marked as DEPRECATED",
+        "comm_id": comm_id,
+        "status": "DEPRECATED"
+    }
 
 
 @router.get("/cache/stats")

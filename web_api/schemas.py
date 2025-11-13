@@ -94,7 +94,7 @@ class SimulationRunResponse(BaseModel):
 # Community Vulnerability Schemas
 class CommunityVulnerabilityCreate(BaseModel):
     """Schema for creating community vulnerability"""
-    comm_id: str = Field(..., max_length=100, description="Community vulnerability ID")
+    comm_id: Optional[str] = Field(None, max_length=100, description="Community vulnerability ID (auto-generated if not provided)")
     description: str = Field(..., min_length=10, description="Vulnerability description")
     cvss_impact: float = Field(..., ge=0.0, le=10.0, description="CVSS impact score (0-10)")
     cvss_exploitability: float = Field(..., ge=0.0, le=10.0, description="CVSS exploitability score (0-10)")
