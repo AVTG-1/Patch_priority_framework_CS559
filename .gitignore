@@ -144,3 +144,8 @@ htmlcov/
 coverage.xml
 *.cover
 
+# Frontend dependencies and build artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/package-lock.json
+
