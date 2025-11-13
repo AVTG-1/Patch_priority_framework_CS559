@@ -131,3 +131,9 @@ Thumbs.db
 # Project-specific temporary files
 pycache_removal.txt
 
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+web_api/patch_priority.db
+
