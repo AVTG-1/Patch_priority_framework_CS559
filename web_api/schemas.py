@@ -4,7 +4,7 @@ Pydantic Schemas for Request/Response Validation
 Defines data models for API endpoints.
 """
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -39,8 +39,7 @@ class UserResponse(BaseModel):
     created_at: datetime
     is_admin: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Token(BaseModel):
@@ -71,8 +70,7 @@ class SystemConfigResponse(BaseModel):
     config_json: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Simulation Schemas
@@ -90,8 +88,7 @@ class SimulationRunResponse(BaseModel):
     results_json: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Community Vulnerability Schemas
@@ -124,8 +121,7 @@ class CommunityVulnerabilityResponse(BaseModel):
     downvotes: int
     vote_score: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Error Schemas

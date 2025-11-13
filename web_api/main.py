@@ -3,6 +3,7 @@ FastAPI Web API for Patch Priority Framework
 Main application entry point
 """
 from pathlib import Path
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
@@ -34,13 +35,37 @@ from schemas import (
     ErrorResponse
 )
 
+
+# Lifespan event handler for startup/shutdown
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan event handler for application startup and shutdown.
+
+    Startup:
+        - Initialize database tables
+
+    Shutdown:
+        - Clean up resources (if needed in future)
+    """
+    # Startup
+    init_db()
+    print("Database initialized")
+
+    yield
+
+    # Shutdown (add cleanup code here if needed)
+    pass
+
+
 # Create FastAPI application instance
 app = FastAPI(
     title="Patch Priority Framework API",
     description="Game-theoretic patch prioritization system for cybersecurity vulnerability management",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # Configure CORS
@@ -51,14 +76,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# Startup event to initialize database
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database on application startup"""
-    init_db()
-    print("Database initialized")
 
 
 @app.get("/health")
