@@ -35,6 +35,9 @@ from schemas import (
     ErrorResponse
 )
 
+# Import routers
+from routers import systems
+
 
 # Lifespan event handler for startup/shutdown
 @asynccontextmanager
@@ -76,6 +79,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(systems.router)
 
 
 @app.get("/health")
