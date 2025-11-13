@@ -137,3 +137,10 @@ pycache_removal.txt
 *.sqlite3
 web_api/patch_priority.db
 
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
