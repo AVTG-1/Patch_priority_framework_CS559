@@ -9,6 +9,7 @@ import {
   LogOut,
   Menu,
   X,
+  AlertTriangle,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -30,6 +31,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Systems', href: '/systems', icon: Database },
+    { name: 'Vulnerabilities', href: '/vulnerabilities', icon: AlertTriangle },
     { name: 'Simulations', href: '/simulations', icon: PlayCircle },
     ...(user?.is_admin ? [{ name: 'Admin', href: '/admin', icon: Users }] : []),
   ];

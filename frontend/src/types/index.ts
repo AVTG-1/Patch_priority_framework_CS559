@@ -59,6 +59,11 @@ export interface SystemConfig {
   name: string;
   description?: string;
   vulnerabilities: Vulnerability[];
+  subsystems?: Array<{
+    name: string;
+    importance: number;
+  }>;
+  dependencies?: Record<string, string[]>;
   created_at: string;
   updated_at: string;
 }

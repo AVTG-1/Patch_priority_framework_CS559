@@ -27,6 +27,12 @@ export default function SystemForm({ mode, initialData, onSuccess }: SystemFormP
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>(
     initialData?.vulnerabilities || []
   );
+  const [subsystems, setSubsystems] = useState<Array<{ name: string; importance: number }>>(
+    initialData?.subsystems || []
+  );
+  const [dependencies, setDependencies] = useState<Record<string, string[]>>(
+    initialData?.dependencies || {}
+  );
 
   // JSON mode
   const [jsonConfig, setJsonConfig] = useState('');
@@ -100,9 +106,20 @@ export default function SystemForm({ mode, initialData, onSuccess }: SystemFormP
       }
 
       // Create config_json string as expected by backend
-      const configData = {
+      const configData: any = {
         vulnerabilities: vulnsToSubmit,
       };
+
+      // Add subsystems if they exist
+      if (subsystems.length > 0) {
+        configData.subsystems = subsystems;
+      }
+
+      // Add dependencies if they exist
+      if (Object.keys(dependencies).length > 0) {
+        configData.dependencies = dependencies;
+      }
+
       const config_json = JSON.stringify(configData);
 
       const systemData = {
@@ -158,6 +175,49 @@ export default function SystemForm({ mode, initialData, onSuccess }: SystemFormP
     const updated = [...vulnerabilities];
     updated[index] = { ...updated[index], [field]: value };
     setVulnerabilities(updated);
+  };
+
+  const addSubsystem = () => {
+    setSubsystems([...subsystems, { name: '', importance: 0.5 }]);
+  };
+
+  const removeSubsystem = (index: number) => {
+    const subsystemName = subsystems[index].name;
+    setSubsystems(subsystems.filter((_, i) => i !== index));
+
+    // Remove dependencies related to this subsystem
+    if (subsystemName) {
+      const newDeps = { ...dependencies };
+      delete newDeps[subsystemName];
+      Object.keys(newDeps).forEach((key) => {
+        newDeps[key] = newDeps[key].filter((dep) => dep !== subsystemName);
+      });
+      setDependencies(newDeps);
+    }
+  };
+
+  const updateSubsystem = (index: number, field: 'name' | 'importance', value: any) => {
+    const updated = [...subsystems];
+    updated[index] = { ...updated[index], [field]: value };
+    setSubsystems(updated);
+  };
+
+  const addDependency = (subsystemName: string, dependency: string) => {
+    const currentDeps = dependencies[subsystemName] || [];
+    if (!currentDeps.includes(dependency)) {
+      setDependencies({
+        ...dependencies,
+        [subsystemName]: [...currentDeps, dependency],
+      });
+    }
+  };
+
+  const removeDependency = (subsystemName: string, dependency: string) => {
+    const currentDeps = dependencies[subsystemName] || [];
+    setDependencies({
+      ...dependencies,
+      [subsystemName]: currentDeps.filter((dep) => dep !== dependency),
+    });
   };
 
   const validateJson = () => {
@@ -355,6 +415,134 @@ export default function SystemForm({ mode, initialData, onSuccess }: SystemFormP
               <Plus className="h-4 w-4 mr-2" />
               Add Vulnerability
             </Button>
+
+            {/* Subsystems Section */}
+            <div className="mt-8 pt-8 border-t border-gray-200">
+              <h4 className="text-md font-medium text-gray-900 mb-4">
+                Subsystems (Optional)
+              </h4>
+              <p className="text-sm text-gray-600 mb-4">
+                Define system components with their importance scores for game-theoretic simulation
+              </p>
+
+              {subsystems.map((subsystem, index) => (
+                <div key={index} className="border border-gray-200 rounded-md p-4 relative mb-3">
+                  <button
+                    type="button"
+                    onClick={() => removeSubsystem(index)}
+                    className="absolute top-2 right-2 text-red-600 hover:text-red-800"
+                    aria-label="Remove subsystem"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Subsystem Name
+                      </label>
+                      <input
+                        type="text"
+                        value={subsystem.name}
+                        onChange={(e) => updateSubsystem(index, 'name', e.target.value)}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="e.g., web-server, database"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Importance (0.0 - 1.0)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={subsystem.importance}
+                        onChange={(e) =>
+                          updateSubsystem(index, 'importance', parseFloat(e.target.value))
+                        }
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <Button type="button" variant="outline" onClick={addSubsystem}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Subsystem
+              </Button>
+            </div>
+
+            {/* Dependencies Section */}
+            {subsystems.length > 1 && (
+              <div className="mt-8 pt-8 border-t border-gray-200">
+                <h4 className="text-md font-medium text-gray-900 mb-4">
+                  Subsystem Dependencies (Optional)
+                </h4>
+                <p className="text-sm text-gray-600 mb-4">
+                  Define which subsystems depend on others (e.g., web-server depends on database)
+                </p>
+
+                {subsystems.map((subsystem) => {
+                  if (!subsystem.name) return null;
+                  const currentDeps = dependencies[subsystem.name] || [];
+                  const availableDeps = subsystems.filter(
+                    (s) => s.name && s.name !== subsystem.name
+                  );
+
+                  return (
+                    <div key={subsystem.name} className="mb-4 p-4 bg-gray-50 rounded-md">
+                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                        {subsystem.name} depends on:
+                      </label>
+
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {currentDeps.map((dep) => (
+                          <span
+                            key={dep}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-indigo-100 text-indigo-800"
+                          >
+                            {dep}
+                            <button
+                              type="button"
+                              onClick={() => removeDependency(subsystem.name, dep)}
+                              className="ml-2 text-indigo-600 hover:text-indigo-800"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            addDependency(subsystem.name, e.target.value);
+                            e.target.value = '';
+                          }
+                        }}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        defaultValue=""
+                      >
+                        <option value="">Add dependency...</option>
+                        {availableDeps.map((dep) => (
+                          <option
+                            key={dep.name}
+                            value={dep.name}
+                            disabled={currentDeps.includes(dep.name)}
+                          >
+                            {dep.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

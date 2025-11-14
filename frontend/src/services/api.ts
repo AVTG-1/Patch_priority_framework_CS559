@@ -98,7 +98,10 @@ const parseSystemConfig = (backendConfig: any): SystemConfig => {
     id: backendConfig.id,
     owner_id: backendConfig.user_id,
     name: backendConfig.name,
+    description: backendConfig.description,
     vulnerabilities: configData.vulnerabilities || [],
+    subsystems: configData.subsystems,
+    dependencies: configData.dependencies,
     created_at: backendConfig.created_at,
     updated_at: backendConfig.created_at, // Backend doesn't have updated_at
   };
