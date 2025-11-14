@@ -217,6 +217,10 @@ async def run_new_simulation(
         # Convert frontend vuln_id to backend cve_id
         cve_id = vuln.get('vuln_id', vuln.get('cve_id', 'CUSTOM-UNKNOWN'))
 
+        # Ensure cve_id matches required pattern: ^(CVE-|CUSTOM-)
+        if not cve_id.startswith('CVE-') and not cve_id.startswith('CUSTOM-'):
+            cve_id = f'CUSTOM-{cve_id}'
+
         # Get or calculate CVSS scores
         cvss_impact = vuln.get('cvss_impact', vuln.get('cvss_score', 5.0) * 0.6)
         cvss_exploitability = vuln.get('cvss_exploitability', vuln.get('cvss_score', 5.0) * 0.4)
