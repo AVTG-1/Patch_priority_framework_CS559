@@ -99,7 +99,8 @@ export interface VulnerabilityQueryResult {
 export interface CommunityVulnerability {
   id: number;
   vuln_id: string;
-  cvss_score: number;
+  cvss_impact: number;
+  cvss_exploitability: number;
   affected_component: string;
   description?: string;
   submitted_by: number;

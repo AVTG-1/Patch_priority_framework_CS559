@@ -264,7 +264,10 @@ export default function Vulnerabilities() {
 
                       <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                         <span>
-                          <strong>CVSS Score:</strong> {vuln.cvss_score.toFixed(1)}
+                          <strong>Impact:</strong> {vuln.cvss_impact.toFixed(1)}
+                        </span>
+                        <span>
+                          <strong>Exploitability:</strong> {vuln.cvss_exploitability.toFixed(1)}
                         </span>
                         <span>
                           <strong>Component:</strong> {vuln.affected_component}
