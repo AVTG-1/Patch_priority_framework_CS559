@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Database } from 'lucide-react';
 import type { SystemConfig, SystemConfigCreate, SystemConfigUpdate, Vulnerability } from '../types';
 import Button from './Button';
+import VulnerabilitySelector from './VulnerabilitySelector';
 import { useToast } from './Toast';
 import { systemsAPI } from '../services/api';
 
@@ -37,6 +38,9 @@ export default function SystemForm({ mode, initialData, onSuccess }: SystemFormP
   // JSON mode
   const [jsonConfig, setJsonConfig] = useState('');
   const [jsonError, setJsonError] = useState('');
+
+  // Vulnerability selector modal
+  const [showVulnSelector, setShowVulnSelector] = useState(false);
 
   useEffect(() => {
     if (initialData && configMode === 'json') {
@@ -167,6 +171,19 @@ export default function SystemForm({ mode, initialData, onSuccess }: SystemFormP
     ]);
   };
 
+  const handleSelectVulnerability = (vuln: Vulnerability) => {
+    // Check if vulnerability already exists
+    const exists = vulnerabilities.some(v => v.vuln_id === vuln.vuln_id);
+    if (exists) {
+      toast.error(`Vulnerability ${vuln.vuln_id} is already added`);
+      return;
+    }
+
+    setVulnerabilities([...vulnerabilities, vuln]);
+    setShowVulnSelector(false);
+    toast.success(`Added vulnerability ${vuln.vuln_id}`);
+  };
+
   const removeVulnerability = (index: number) => {
     setVulnerabilities(vulnerabilities.filter((_, i) => i !== index));
   };
@@ -241,6 +258,7 @@ export default function SystemForm({ mode, initialData, onSuccess }: SystemFormP
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Basic Information */}
       <div className="bg-white shadow rounded-lg p-6">
@@ -411,10 +429,16 @@ export default function SystemForm({ mode, initialData, onSuccess }: SystemFormP
               </div>
             ))}
 
-            <Button type="button" variant="outline" onClick={addVulnerability}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Vulnerability
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={addVulnerability}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Manually
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setShowVulnSelector(true)}>
+                <Database className="h-4 w-4 mr-2" />
+                Add from Database
+              </Button>
+            </div>
 
             {/* Subsystems Section */}
             <div className="mt-8 pt-8 border-t border-gray-200">
@@ -557,5 +581,13 @@ export default function SystemForm({ mode, initialData, onSuccess }: SystemFormP
         </Button>
       </div>
     </form>
+
+    {showVulnSelector && (
+      <VulnerabilitySelector
+        onSelect={handleSelectVulnerability}
+        onClose={() => setShowVulnSelector(false)}
+      />
+    )}
+    </>
   );
 }

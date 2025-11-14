@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Shield, CheckCircle, AlertTriangle } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tantml:react-query';
+import { Search, Shield, CheckCircle, AlertTriangle, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { vulnerabilitiesAPI } from '../services/api';
+import { nvdAPI, extractCVSSScores, extractDescription, extractAffectedComponent } from '../services/nvdApi';
+import type { NVDVulnerability } from '../services/nvdApi';
 import { useAuthStore } from '../stores/authStore';
 import Tabs, { Tab } from '../components/Tabs';
 import Card from '../components/Card';
@@ -24,6 +26,9 @@ export default function Vulnerabilities() {
 
   // NVD search state
   const [cveId, setCveId] = useState('');
+  const [nvdSearchResults, setNvdSearchResults] = useState<NVDVulnerability[]>([]);
+  const [nvdSearching, setNvdSearching] = useState(false);
+  const [nvdSearchError, setNvdSearchError] = useState<string | null>(null);
 
   // Submit form state
   const [submitForm, setSubmitForm] = useState<CommunityVulnerabilityCreate>({
@@ -111,6 +116,31 @@ export default function Vulnerabilities() {
     submitMutation.mutate(submitForm);
   };
 
+  const handleNVDSearch = async () => {
+    if (!cveId.trim()) {
+      toast.error('Please enter a CVE ID');
+      return;
+    }
+
+    setNvdSearching(true);
+    setNvdSearchError(null);
+    setNvdSearchResults([]);
+
+    try {
+      const result = await nvdAPI.searchByCVE(cveId);
+      if (result) {
+        setNvdSearchResults([result]);
+      } else {
+        setNvdSearchError('No results found for this CVE ID');
+      }
+    } catch (error) {
+      setNvdSearchError('Failed to search NVD. Please try again.');
+      toast.error('Failed to search NVD');
+    } finally {
+      setNvdSearching(false);
+    }
+  };
+
   const filteredVulns = communityVulns
     ?.filter((v) => {
       if (statusFilter === 'verified') return v.verified;
@@ -142,31 +172,73 @@ export default function Vulnerabilities() {
                   type="text"
                   value={cveId}
                   onChange={(e) => setCveId(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleNVDSearch()}
                   placeholder="CVE-2024-1234"
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
-                <Button disabled>
+                <Button onClick={handleNVDSearch} loading={nvdSearching}>
                   <Search className="h-4 w-4 mr-2" />
                   Search
                 </Button>
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-              <div className="flex">
-                <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5" />
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-blue-800">
-                    NVD Integration Coming Soon
-                  </h3>
-                  <p className="mt-1 text-sm text-blue-700">
-                    Direct NVD database search is not yet implemented. You can manually enter
-                    vulnerability information in the "Submit New" tab or browse community-submitted
-                    vulnerabilities.
-                  </p>
-                </div>
+            {nvdSearchError && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                <p className="text-sm text-red-700">{nvdSearchError}</p>
               </div>
-            </div>
+            )}
+
+            {nvdSearchResults.length > 0 && (
+              <div className="space-y-4">
+                {nvdSearchResults.map((vuln) => {
+                  const scores = extractCVSSScores(vuln);
+                  const description = extractDescription(vuln);
+                  const component = extractAffectedComponent(vuln);
+
+                  return (
+                    <Card key={vuln.id} className="border-l-4 border-l-indigo-500">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {vuln.id}
+                          </h3>
+                          <Badge variant={scores.severity === 'HIGH' || scores.severity === 'CRITICAL' ? 'danger' : scores.severity === 'MEDIUM' ? 'warning' : 'success'}>
+                            {scores.severity} - {scores.baseScore.toFixed(1)}
+                          </Badge>
+                        </div>
+                        <a
+                          href={`https://nvd.nist.gov/vuln/detail/${vuln.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-600 hover:text-indigo-800"
+                        >
+                          <ExternalLink className="h-5 w-5" />
+                        </a>
+                      </div>
+
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-3">{description}</p>
+
+                      <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
+                        <span>
+                          <strong>Impact:</strong> {scores.impact.toFixed(1)}
+                        </span>
+                        <span>
+                          <strong>Exploitability:</strong> {scores.exploitability.toFixed(1)}
+                        </span>
+                        <span>
+                          <strong>Component:</strong> {component}
+                        </span>
+                        <span>
+                          <strong>Published:</strong>{' '}
+                          {new Date(vuln.published).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </Card>
       ),
