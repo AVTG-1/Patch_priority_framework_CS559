@@ -165,6 +165,8 @@ export interface SimulationRunCreate {
   system_id: number;
   system_name: string;
   rounds?: number;
+  num_defenders?: number;
+  num_attackers?: number;
   defender_budget?: number;
   attacker_budget?: number;
   patch_grouping_method?: string;

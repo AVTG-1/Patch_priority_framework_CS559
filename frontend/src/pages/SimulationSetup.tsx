@@ -26,6 +26,8 @@ export default function SimulationSetup() {
     system_id: selectedSystemId || 0,
     system_name: '',
     rounds: 10,
+    num_defenders: 1,
+    num_attackers: 1,
     defender_budget: undefined,
     attacker_budget: undefined,
     patch_grouping_method: 'dependencies',
@@ -205,7 +207,55 @@ export default function SimulationSetup() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Defender Budget
+                  Number of Defenders
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  step="1"
+                  value={formData.num_defenders || 1}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      num_defenders: parseInt(e.target.value) || 1,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Number of defender players (1-10)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Number of Attackers
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  step="1"
+                  value={formData.num_attackers || 1}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      num_attackers: parseInt(e.target.value) || 1,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Number of attacker players (1-10)
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Defender Budget (per player)
                   <span className="text-gray-500 font-normal ml-1">(optional)</span>
                 </label>
                 <input
@@ -229,7 +279,7 @@ export default function SimulationSetup() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Attacker Budget
+                  Attacker Budget (per player)
                   <span className="text-gray-500 font-normal ml-1">(optional)</span>
                 </label>
                 <input

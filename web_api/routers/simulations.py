@@ -39,6 +39,8 @@ def run_simulation_task(
     simulation_id: int,
     config_path: str,
     rounds: int,
+    num_defenders: int,
+    num_attackers: int,
     defender_budget: Optional[float],
     attacker_budget: Optional[float],
     patch_grouping_method: str,
@@ -53,8 +55,10 @@ def run_simulation_task(
         simulation_id: ID of the simulation run in database
         config_path: Path to temporary config file
         rounds: Number of simulation rounds
-        defender_budget: Defender resource budget (optional)
-        attacker_budget: Attacker resource budget (optional)
+        num_defenders: Number of defender players
+        num_attackers: Number of attacker players
+        defender_budget: Defender resource budget per player (optional)
+        attacker_budget: Attacker resource budget per player (optional)
         patch_grouping_method: Patch grouping strategy
         db_connection_string: Database connection string
     """
@@ -70,23 +74,28 @@ def run_simulation_task(
         # Load system from config
         system = load_system_from_config(config_path)
 
-        # Create player objects if budgets provided
+        # Create multiple player objects
         players = None
         if defender_budget is not None or attacker_budget is not None:
             players = []
-            if defender_budget is not None:
-                defender = PlayerBase.create_defender(
-                    player_id="defender_1",
-                    resource_budget=defender_budget
-                )
-                players.append(defender)
 
+            # Create defender players
+            if defender_budget is not None:
+                for i in range(num_defenders):
+                    defender = PlayerBase.create_defender(
+                        player_id=f"defender_{i+1}",
+                        resource_budget=defender_budget
+                    )
+                    players.append(defender)
+
+            # Create attacker players
             if attacker_budget is not None:
-                attacker = PlayerBase.create_attacker(
-                    player_id="attacker_1",
-                    resource_budget=attacker_budget
-                )
-                players.append(attacker)
+                for i in range(num_attackers):
+                    attacker = PlayerBase.create_attacker(
+                        player_id=f"attacker_{i+1}",
+                        resource_budget=attacker_budget
+                    )
+                    players.append(attacker)
 
         # Run simulation
         results = run_simulation(
@@ -298,6 +307,8 @@ async def run_new_simulation(
         simulation_id=new_simulation.id,
         config_path=temp_config_path,
         rounds=simulation_data.rounds,
+        num_defenders=simulation_data.num_defenders,
+        num_attackers=simulation_data.num_attackers,
         defender_budget=simulation_data.defender_budget,
         attacker_budget=simulation_data.attacker_budget,
         patch_grouping_method=simulation_data.patch_grouping_method,
