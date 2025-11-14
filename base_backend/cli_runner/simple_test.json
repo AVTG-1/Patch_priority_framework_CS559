@@ -1,0 +1,36 @@
+{
+  "system_name": "Test Server",
+  "subsystems": [
+    {
+      "id": "web",
+      "name": "Web Server",
+      "functional_dependencies": []
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "cve_id": "CVE-2024-TEST1",
+      "subsystem_id": "web",
+      "cvss_impact": 7.5,
+      "cvss_exploitability": 8.2,
+      "patch_cost": 1.0,
+      "description": "Test vulnerability 1",
+      "exploit_present": true,
+      "dependencies": [],
+      "source": "CUSTOM"
+    },
+    {
+      "cve_id": "CVE-2024-TEST2",
+      "subsystem_id": "web",
+      "cvss_impact": 6.3,
+      "cvss_exploitability": 9.1,
+      "patch_cost": 2.0,
+      "description": "Test vulnerability 2",
+      "exploit_present": false,
+      "dependencies": [],
+      "source": "CUSTOM"
+    }
+  ],
+  "simulation_rounds": 5,
+  "patch_grouping_method": "severity"
+}

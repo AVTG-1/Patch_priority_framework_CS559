@@ -1,0 +1,108 @@
+{
+  "system_name": "Enterprise Web Application",
+  "system_class": "WebApplication",
+  "description": "Multi-tier web application with database, cache, and web servers",
+  "subsystems": [
+    {
+      "id": "web_server",
+      "name": "Web Server",
+      "functional_dependencies": ["database", "cache"],
+      "connected_to": ["load_balancer"]
+    },
+    {
+      "id": "database",
+      "name": "Database",
+      "functional_dependencies": [],
+      "connected_to": ["web_server"]
+    },
+    {
+      "id": "cache",
+      "name": "Cache Layer",
+      "functional_dependencies": ["database"],
+      "connected_to": ["web_server"]
+    },
+    {
+      "id": "load_balancer",
+      "name": "Load Balancer",
+      "functional_dependencies": ["web_server"],
+      "connected_to": []
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "cve_id": "CVE-2024-1234",
+      "subsystem_id": "web_server",
+      "cvss_impact": 7.5,
+      "cvss_exploitability": 8.6,
+      "patch_cost": 2.0,
+      "description": "SQL injection vulnerability in authentication module",
+      "exploit_present": true,
+      "dependencies": [],
+      "source": "NVD"
+    },
+    {
+      "cve_id": "CVE-2024-5678",
+      "subsystem_id": "database",
+      "cvss_impact": 9.2,
+      "cvss_exploitability": 6.4,
+      "patch_cost": 5.0,
+      "description": "Remote code execution in database engine",
+      "exploit_present": true,
+      "dependencies": [],
+      "source": "NVD"
+    },
+    {
+      "cve_id": "CUSTOM-CACHE-001",
+      "subsystem_id": "cache",
+      "cvss_impact": 5.3,
+      "cvss_exploitability": 7.8,
+      "patch_cost": 1.0,
+      "description": "Cache poisoning vulnerability",
+      "exploit_present": false,
+      "dependencies": [],
+      "source": "CUSTOM"
+    },
+    {
+      "cve_id": "CVE-2024-9012",
+      "subsystem_id": "load_balancer",
+      "cvss_impact": 6.1,
+      "cvss_exploitability": 8.9,
+      "patch_cost": 1.5,
+      "description": "DDoS amplification vulnerability",
+      "exploit_present": true,
+      "dependencies": [],
+      "source": "NVD"
+    },
+    {
+      "cve_id": "CVE-2024-3456",
+      "subsystem_id": "web_server",
+      "cvss_impact": 4.8,
+      "cvss_exploitability": 9.1,
+      "patch_cost": 1.0,
+      "description": "XSS vulnerability in user input validation",
+      "exploit_present": true,
+      "dependencies": ["CVE-2024-1234"],
+      "source": "NVD"
+    }
+  ],
+  "players": [
+    {
+      "player_id": "defender_1",
+      "role": "DEFENDER",
+      "resource_budget": 200.0,
+      "team_id": null
+    },
+    {
+      "player_id": "attacker_1",
+      "role": "ATTACKER",
+      "resource_budget": 100.0,
+      "team_id": null
+    }
+  ],
+  "simulation_rounds": 10,
+  "patch_grouping_method": "dependencies",
+  "weights": {
+    "functional_dependency_weight": 0.7,
+    "topological_dependency_weight": 0.3
+  }
+}

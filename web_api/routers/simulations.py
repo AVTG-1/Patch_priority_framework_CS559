@@ -373,12 +373,16 @@ async def get_simulation_results(
             detail="Failed to parse simulation data"
         )
 
-    # Get system name from config
-    try:
-        config_dict = json.loads(simulation.system_config.config_json)
-        system_name = config_dict.get("system_name", "Unknown")
-    except:
-        system_name = "Unknown"
+    # Get system name - prefer from system_config.name, fallback to config_json
+    system_name = simulation.system_config.name
+
+    # If not in name field, try config_json (for backwards compatibility)
+    if not system_name or system_name == "":
+        try:
+            config_dict = json.loads(simulation.system_config.config_json)
+            system_name = config_dict.get("system_name", "Unknown")
+        except:
+            system_name = "Unknown"
 
     return SimulationDetailResponse(
         id=simulation.id,
