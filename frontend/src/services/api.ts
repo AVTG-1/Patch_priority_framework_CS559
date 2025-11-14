@@ -177,28 +177,38 @@ export const vulnerabilitiesAPI = {
   },
 };
 
+// Helper to parse backend simulation response to frontend format
+const parseSimulationResponse = (backendSim: any): any => {
+  // Backend returns 'simulation_id', frontend expects 'id'
+  const { simulation_id, ...rest } = backendSim;
+  return {
+    id: simulation_id,
+    ...rest,
+  };
+};
+
 // Simulation API
 export const simulationsAPI = {
   runSimulation: async (
     simulationData: SimulationRunCreate
   ): Promise<SimulationSummary> => {
-    const response = await api.post<SimulationSummary>('/simulations', simulationData);
-    return response.data;
+    const response = await api.post<any>('/simulations', simulationData);
+    return parseSimulationResponse(response.data);
   },
 
   getSimulations: async (): Promise<SimulationRun[]> => {
-    const response = await api.get<SimulationRun[]>('/simulations');
-    return response.data;
+    const response = await api.get<any[]>('/simulations');
+    return response.data.map(parseSimulationResponse);
   },
 
   getSimulation: async (simulationId: number): Promise<SimulationRun> => {
-    const response = await api.get<SimulationRun>(`/simulations/${simulationId}`);
-    return response.data;
+    const response = await api.get<any>(`/simulations/${simulationId}`);
+    return parseSimulationResponse(response.data);
   },
 
   getSystemSimulations: async (systemId: number): Promise<SimulationRun[]> => {
-    const response = await api.get<SimulationRun[]>(`/simulations/system/${systemId}`);
-    return response.data;
+    const response = await api.get<any[]>(`/simulations/system/${systemId}`);
+    return response.data.map(parseSimulationResponse);
   },
 };
 

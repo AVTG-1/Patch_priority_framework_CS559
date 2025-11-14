@@ -28,7 +28,8 @@ export default function Vulnerabilities() {
   // Submit form state
   const [submitForm, setSubmitForm] = useState<CommunityVulnerabilityCreate>({
     vuln_id: '',
-    cvss_score: 5.0,
+    cvss_impact: 5.0,
+    cvss_exploitability: 5.0,
     affected_component: '',
     description: '',
   });
@@ -50,7 +51,8 @@ export default function Vulnerabilities() {
       toast.success(`Vulnerability submitted successfully! ID: ${data.vuln_id}`);
       setSubmitForm({
         vuln_id: '',
-        cvss_score: 5.0,
+        cvss_impact: 5.0,
+        cvss_exploitability: 5.0,
         affected_component: '',
         description: '',
       });
@@ -86,13 +88,23 @@ export default function Vulnerabilities() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!submitForm.description || submitForm.description.length > 500) {
-      toast.error('Description is required and must be under 500 characters');
+    if (!submitForm.description || submitForm.description.length < 10) {
+      toast.error('Description must be at least 10 characters');
       return;
     }
 
-    if (submitForm.cvss_score < 0 || submitForm.cvss_score > 10) {
-      toast.error('CVSS score must be between 0 and 10');
+    if (submitForm.description.length > 500) {
+      toast.error('Description must be under 500 characters');
+      return;
+    }
+
+    if (submitForm.cvss_impact < 0 || submitForm.cvss_impact > 10) {
+      toast.error('CVSS Impact must be between 0 and 10');
+      return;
+    }
+
+    if (submitForm.cvss_exploitability < 0 || submitForm.cvss_exploitability > 10) {
+      toast.error('CVSS Exploitability must be between 0 and 10');
       return;
     }
 
@@ -330,44 +342,68 @@ export default function Vulnerabilities() {
                 placeholder="Describe the vulnerability..."
               />
               <p className="mt-1 text-xs text-gray-500">
-                {submitForm.description?.length || 0} / 500 characters
+                {submitForm.description?.length || 0} / 500 characters (minimum 10 required)
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  CVSS Score <span className="text-red-500">*</span>
+                  CVSS Impact Score <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
                   min="0"
                   max="10"
                   step="0.1"
-                  value={submitForm.cvss_score}
+                  value={submitForm.cvss_impact}
                   onChange={(e) =>
-                    setSubmitForm({ ...submitForm, cvss_score: parseFloat(e.target.value) })
+                    setSubmitForm({ ...submitForm, cvss_impact: parseFloat(e.target.value) })
                   }
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  Impact on confidentiality, integrity, and availability (0-10)
+                </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Affected Component <span className="text-red-500">*</span>
+                  CVSS Exploitability Score <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="text"
-                  value={submitForm.affected_component}
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                  value={submitForm.cvss_exploitability}
                   onChange={(e) =>
-                    setSubmitForm({ ...submitForm, affected_component: e.target.value })
+                    setSubmitForm({ ...submitForm, cvss_exploitability: parseFloat(e.target.value) })
                   }
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="e.g., web-server, database"
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  Ease of exploiting the vulnerability (0-10)
+                </p>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Affected Component <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={submitForm.affected_component}
+                onChange={(e) =>
+                  setSubmitForm({ ...submitForm, affected_component: e.target.value })
+                }
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="e.g., web-server, database"
+              />
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
@@ -377,7 +413,8 @@ export default function Vulnerabilities() {
                 onClick={() => {
                   setSubmitForm({
                     vuln_id: '',
-                    cvss_score: 5.0,
+                    cvss_impact: 5.0,
+                    cvss_exploitability: 5.0,
                     affected_component: '',
                     description: '',
                   });

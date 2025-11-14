@@ -111,9 +111,10 @@ export interface CommunityVulnerability {
 
 export interface CommunityVulnerabilityCreate {
   vuln_id: string;
-  cvss_score: number;
+  cvss_impact: number;
+  cvss_exploitability: number;
   affected_component: string;
-  description?: string;
+  description: string;
 }
 
 // Simulation Types
