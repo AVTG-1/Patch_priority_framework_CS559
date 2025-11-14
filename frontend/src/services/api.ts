@@ -193,20 +193,32 @@ const parseSimulationResponse = (backendSim: any): any => {
 
   if (results && results.status !== 'pending' && results.status !== 'running' && results.status !== 'failed') {
     // Transform backend structure to frontend structure
+
+    // Build rounds_data properly using ris_summary for RIS values
+    // ris_summary[0] = initial RIS, ris_summary[i+1] = RIS after round i
+    const rounds_data = [];
+
+    if (results.ris_summary && results.per_round_details) {
+      // For each round, use RIS from BEFORE the round (start of round)
+      for (let i = 0; i < results.per_round_details.length; i++) {
+        const roundDetail = results.per_round_details[i];
+        rounds_data.push({
+          round: roundDetail.round,
+          remaining_impact_score: results.ris_summary[i] || 0, // RIS at START of round
+          defender_action: {
+            patches: roundDetail.patched_groups || [],
+            cost: 0, // Backend doesn't provide per-round cost
+          },
+          attacker_action: {
+            exploits: roundDetail.attacked_vulnerabilities || [],
+            impact: 0, // Backend doesn't provide per-round impact
+          },
+        });
+      }
+    }
+
     transformedResult = {
-      // Transform per_round_details to rounds_data
-      rounds_data: results.per_round_details?.map((round: any) => ({
-        round: round.round,
-        remaining_impact_score: round.remaining_ris || 0,
-        defender_action: {
-          patches: round.patched_groups || [],
-          cost: 0, // Backend doesn't provide per-round cost
-        },
-        attacker_action: {
-          exploits: round.attacked_vulnerabilities || [],
-          impact: 0, // Backend doesn't provide per-round impact
-        },
-      })) || [],
+      rounds_data: rounds_data,
 
       // Transform simulation_metrics to summary
       summary: results.simulation_metrics ? {
