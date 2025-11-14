@@ -206,6 +206,21 @@ async def run_new_simulation(
     db.commit()
     db.refresh(new_simulation)
 
+    # Inject system_name into config_dict for ConfigLoader
+    # The ConfigLoader requires system_name to be in the JSON config
+    config_dict['system_name'] = simulation_data.system_name
+
+    # Also ensure subsystems field exists (ConfigLoader requires it)
+    if 'subsystems' not in config_dict:
+        # If no subsystems defined, create a default subsystem with all vulnerabilities
+        config_dict['subsystems'] = [
+            {
+                'name': simulation_data.system_name,
+                'id': 'main',
+                'vulnerabilities': []
+            }
+        ]
+
     # Write config to temporary file for background task
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
         json.dump(config_dict, f)
@@ -230,7 +245,7 @@ async def run_new_simulation(
     return SimulationSummary(
         simulation_id=new_simulation.id,
         system_id=system_config.id,
-        system_name=config_dict.get("system_name", "Unknown"),
+        system_name=simulation_data.system_name,
         rounds=simulation_data.rounds,
         initial_ris=0.0,  # Will be updated by background task
         final_ris=0.0,  # Will be updated by background task
