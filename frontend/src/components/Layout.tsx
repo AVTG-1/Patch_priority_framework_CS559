@@ -10,6 +10,7 @@ import {
   Menu,
   X,
   AlertTriangle,
+  Book,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -33,6 +34,7 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Systems', href: '/systems', icon: Database },
     { name: 'Vulnerabilities', href: '/vulnerabilities', icon: AlertTriangle },
     { name: 'Simulations', href: '/simulations', icon: PlayCircle },
+    { name: 'Backend Guide', href: '/guide', icon: Book },
     ...(user?.is_admin ? [{ name: 'Admin', href: '/admin', icon: Users }] : []),
   ];
 

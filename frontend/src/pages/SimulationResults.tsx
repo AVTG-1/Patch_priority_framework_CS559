@@ -146,6 +146,11 @@ export default function SimulationResults() {
     );
   }
 
+  // Debug logging
+  console.log('Simulation result:', result);
+  console.log('Rounds data length:', result.rounds_data?.length);
+  console.log('Rounds data:', result.rounds_data);
+
   const initialRIS = result.rounds_data?.[0]?.remaining_impact_score || 0;
   const finalRIS = result.final_scores?.defender_score || 0;
   const risReduction = initialRIS > 0 ? (((initialRIS - finalRIS) / initialRIS) * 100) : 0;
@@ -155,6 +160,9 @@ export default function SimulationResults() {
     round: round.round,
     ris: round.remaining_impact_score,
   })) || [];
+
+  console.log('Chart data length:', chartData.length);
+  console.log('Chart data:', chartData);
 
   return (
     <div className="space-y-6">
@@ -297,9 +305,14 @@ export default function SimulationResults() {
       {result.rounds_data && result.rounds_data.length > 0 && (
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Detailed Round Analysis
-            </h2>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Detailed Round Analysis
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Showing {result.rounds_data.length} round{result.rounds_data.length !== 1 ? 's' : ''}
+              </p>
+            </div>
             <Button variant="outline" size="sm" onClick={toggleAllRounds}>
               {expandedRounds.size === result.rounds_data.length
                 ? 'Collapse All'

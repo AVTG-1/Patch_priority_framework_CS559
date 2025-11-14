@@ -15,6 +15,7 @@ import Vulnerabilities from './pages/Vulnerabilities';
 import Simulations from './pages/Simulations';
 import SimulationSetup from './pages/SimulationSetup';
 import SimulationResults from './pages/SimulationResults';
+import BackendGuide from './pages/BackendGuide';
 
 // Components
 import Layout from './components/Layout';
@@ -157,6 +158,18 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <SimulationResults />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Backend Guide route */}
+          <Route
+            path="/guide"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <BackendGuide />
                 </Layout>
               </ProtectedRoute>
             }
