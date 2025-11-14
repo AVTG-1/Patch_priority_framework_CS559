@@ -7,10 +7,19 @@ import { useAuthStore } from './stores/authStore';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Systems from './pages/Systems';
+import SystemCreate from './pages/SystemCreate';
+import SystemEdit from './pages/SystemEdit';
+import SystemDetail from './pages/SystemDetail';
+import Vulnerabilities from './pages/Vulnerabilities';
+import Simulations from './pages/Simulations';
+import SimulationSetup from './pages/SimulationSetup';
+import SimulationResults from './pages/SimulationResults';
 
 // Components
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import { ToastProvider } from './components/Toast';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -32,11 +41,12 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+      <ToastProvider>
+        <Router>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
           {/* Protected routes */}
           <Route
@@ -50,31 +60,103 @@ function App() {
             }
           />
 
+          {/* Systems routes */}
           <Route
             path="/systems"
             element={
               <ProtectedRoute>
                 <Layout>
-                  <div className="text-center py-12">
-                    <h2 className="text-2xl font-bold text-gray-900">Systems Management</h2>
-                    <p className="mt-2 text-gray-600">Coming soon...</p>
-                  </div>
+                  <Systems />
                 </Layout>
               </ProtectedRoute>
             }
           />
 
           <Route
+            path="/systems/create"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SystemCreate />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/systems/:id"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SystemDetail />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/systems/:id/edit"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SystemEdit />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Vulnerabilities route */}
+          <Route
+            path="/vulnerabilities"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Vulnerabilities />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Simulations routes */}
+          <Route
             path="/simulations"
             element={
               <ProtectedRoute>
                 <Layout>
-                  <div className="text-center py-12">
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      Simulation Management
-                    </h2>
-                    <p className="mt-2 text-gray-600">Coming soon...</p>
-                  </div>
+                  <Simulations />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/simulations/setup"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SimulationSetup />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/simulations/setup/:systemId"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SimulationSetup />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/simulations/:id"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SimulationResults />
                 </Layout>
               </ProtectedRoute>
             }
@@ -115,8 +197,9 @@ function App() {
               </div>
             }
           />
-        </Routes>
-      </Router>
+          </Routes>
+        </Router>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }
