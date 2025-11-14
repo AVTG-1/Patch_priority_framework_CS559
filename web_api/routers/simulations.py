@@ -209,25 +209,70 @@ async def run_new_simulation(
     # Transform config_dict to match ConfigLoader schema
     config_dict['system_name'] = simulation_data.system_name
 
+    # Handle subsystems - ensure proper structure
+    subsystems_list = config_dict.get('subsystems', [])
+    dependencies_dict = config_dict.get('dependencies', {})
+
+    # If no subsystems defined, create default
+    if not subsystems_list:
+        subsystems_list = [
+            {
+                'id': 'main',
+                'name': simulation_data.system_name,
+            }
+        ]
+        default_subsystem_id = 'main'
+    else:
+        # Transform subsystems to include id field and dependencies
+        transformed_subsystems = []
+        for subsystem in subsystems_list:
+            subsys_name = subsystem.get('name', 'subsystem')
+            subsys_id = subsystem.get('id', subsys_name.lower().replace(' ', '_'))
+
+            # Get functional dependencies for this subsystem
+            subsys_deps = dependencies_dict.get(subsys_name, [])
+
+            transformed_subsystems.append({
+                'id': subsys_id,
+                'name': subsys_name,
+                'functional_dependencies': subsys_deps
+            })
+
+        subsystems_list = transformed_subsystems
+        default_subsystem_id = subsystems_list[0]['id'] if subsystems_list else 'main'
+
+    config_dict['subsystems'] = subsystems_list
+
     # Transform vulnerabilities to ConfigLoader format
     vulnerabilities_list = config_dict.get('vulnerabilities', [])
     transformed_vulns = []
 
-    for vuln in vulnerabilities_list:
+    for i, vuln in enumerate(vulnerabilities_list):
         # Convert frontend vuln_id to backend cve_id
-        cve_id = vuln.get('vuln_id', vuln.get('cve_id', 'CUSTOM-UNKNOWN'))
+        cve_id = vuln.get('vuln_id', vuln.get('cve_id', f'CUSTOM-{i}'))
 
         # Ensure cve_id matches required pattern: ^(CVE-|CUSTOM-)
         if not cve_id.startswith('CVE-') and not cve_id.startswith('CUSTOM-'):
             cve_id = f'CUSTOM-{cve_id}'
 
         # Get or calculate CVSS scores
-        cvss_impact = vuln.get('cvss_impact', vuln.get('cvss_score', 5.0) * 0.6)
-        cvss_exploitability = vuln.get('cvss_exploitability', vuln.get('cvss_score', 5.0) * 0.4)
+        cvss_score = vuln.get('cvss_score', 5.0)
+        cvss_impact = vuln.get('cvss_impact', cvss_score * 0.6)
+        cvss_exploitability = vuln.get('cvss_exploitability', cvss_score * 0.4)
+
+        # Determine which subsystem this vulnerability belongs to
+        affected_component = vuln.get('affected_component', '')
+        subsystem_id = default_subsystem_id
+
+        # Try to match vulnerability to subsystem by component name
+        for subsys in subsystems_list:
+            if subsys['name'].lower() in affected_component.lower():
+                subsystem_id = subsys['id']
+                break
 
         transformed_vulns.append({
             'cve_id': cve_id,
-            'subsystem_id': 'main',  # Assign to main subsystem
+            'subsystem_id': subsystem_id,
             'cvss_impact': float(cvss_impact),
             'cvss_exploitability': float(cvss_exploitability),
             'patch_cost': vuln.get('patch_cost', 1.0),
@@ -238,20 +283,6 @@ async def run_new_simulation(
         })
 
     config_dict['vulnerabilities'] = transformed_vulns
-
-    # Ensure subsystems field exists (ConfigLoader requires it)
-    if 'subsystems' not in config_dict or not config_dict['subsystems']:
-        config_dict['subsystems'] = [
-            {
-                'id': 'main',
-                'name': simulation_data.system_name,
-            }
-        ]
-    else:
-        # Ensure all subsystems have required 'id' and 'name' fields
-        for subsystem in config_dict['subsystems']:
-            if 'id' not in subsystem:
-                subsystem['id'] = subsystem.get('name', 'subsys').lower().replace(' ', '_')
 
     # Write config to temporary file for background task
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
