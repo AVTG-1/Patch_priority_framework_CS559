@@ -36,6 +36,13 @@ export default function SimulationResults() {
   } = useQuery({
     queryKey: ['simulation', simulationId],
     queryFn: () => simulationsAPI.getSimulation(simulationId),
+    // Poll every 2 seconds if simulation is pending or running
+    refetchInterval: (data) => {
+      if (data?.status === 'pending' || data?.status === 'running') {
+        return 2000; // 2 seconds
+      }
+      return false; // Don't poll if completed/failed
+    },
   });
 
   const {
@@ -102,7 +109,10 @@ export default function SimulationResults() {
             Simulation {simulation.status === 'running' ? 'Running' : 'Pending'}
           </h2>
           <p className="mt-2 text-gray-600">
-            This simulation is currently {simulation.status}. Please check back later.
+            This simulation is currently {simulation.status}.
+          </p>
+          <p className="mt-1 text-sm text-gray-500">
+            Auto-refreshing every 2 seconds...
           </p>
           <Button className="mt-4" onClick={() => navigate('/simulations')}>
             Back to Simulations

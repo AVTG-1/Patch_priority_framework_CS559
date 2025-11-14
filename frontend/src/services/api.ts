@@ -179,10 +179,27 @@ export const vulnerabilitiesAPI = {
 
 // Helper to parse backend simulation response to frontend format
 const parseSimulationResponse = (backendSim: any): any => {
-  // Backend returns 'simulation_id', frontend expects 'id'
-  const { simulation_id, ...rest } = backendSim;
+  // Backend returns different field names than frontend expects
+  const {
+    simulation_id,
+    system_config_id,
+    parameters,
+    results,
+    ...rest
+  } = backendSim;
+
   return {
     id: simulation_id,
+    system_id: system_config_id,
+    // Extract parameters to top level if they exist
+    rounds: parameters?.rounds,
+    defender_budget: parameters?.defender_budget,
+    attacker_budget: parameters?.attacker_budget,
+    patch_grouping_method: parameters?.patch_grouping_method,
+    // Handle results - backend returns {status, message} or actual results
+    status: results?.status || 'completed',
+    result: results?.status === 'pending' || results?.status === 'running' ? undefined : results,
+    error_message: results?.message && results?.status === 'failed' ? results.message : undefined,
     ...rest,
   };
 };
