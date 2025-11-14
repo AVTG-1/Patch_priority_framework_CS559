@@ -33,6 +33,26 @@ export interface Vulnerability {
   dependencies?: string[];
 }
 
+// Backend response format (config_json is a JSON string)
+export interface SystemConfigResponse {
+  id: number;
+  user_id: number;
+  name: string;
+  config_json: string;
+  created_at: string;
+}
+
+// Parsed configuration object
+export interface SystemConfigData {
+  vulnerabilities: Vulnerability[];
+  subsystems?: Array<{
+    name: string;
+    importance: number;
+  }>;
+  dependencies?: Record<string, string[]>;
+}
+
+// Frontend-friendly format (parsed from backend)
 export interface SystemConfig {
   id: number;
   owner_id: number;
@@ -43,16 +63,16 @@ export interface SystemConfig {
   updated_at: string;
 }
 
+// What we send to backend for creation
 export interface SystemConfigCreate {
   name: string;
-  description?: string;
-  vulnerabilities: Vulnerability[];
+  config_json: string; // JSON string
 }
 
+// What we send to backend for update
 export interface SystemConfigUpdate {
   name?: string;
-  description?: string;
-  vulnerabilities?: Vulnerability[];
+  config_json?: string; // JSON string
 }
 
 // Vulnerability Query Types

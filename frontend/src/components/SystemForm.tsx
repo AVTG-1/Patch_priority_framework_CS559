@@ -47,8 +47,9 @@ export default function SystemForm({ mode, initialData, onSuccess }: SystemFormP
     if (configMode === 'json') {
       try {
         const parsed = JSON.parse(jsonConfig);
-        if (!Array.isArray(parsed)) {
-          toast.error('JSON must be an array of vulnerabilities');
+        // Accept both array format or config object format
+        if (!Array.isArray(parsed) && (!parsed.vulnerabilities || !Array.isArray(parsed.vulnerabilities))) {
+          toast.error('JSON must be an array of vulnerabilities or an object with vulnerabilities array');
           return false;
         }
       } catch (e) {
@@ -89,13 +90,24 @@ export default function SystemForm({ mode, initialData, onSuccess }: SystemFormP
       let vulnsToSubmit = vulnerabilities;
 
       if (configMode === 'json') {
-        vulnsToSubmit = JSON.parse(jsonConfig);
+        const parsed = JSON.parse(jsonConfig);
+        // Handle both formats: array or config object
+        if (Array.isArray(parsed)) {
+          vulnsToSubmit = parsed;
+        } else if (parsed.vulnerabilities) {
+          vulnsToSubmit = parsed.vulnerabilities;
+        }
       }
+
+      // Create config_json string as expected by backend
+      const configData = {
+        vulnerabilities: vulnsToSubmit,
+      };
+      const config_json = JSON.stringify(configData);
 
       const systemData = {
         name: name.trim(),
-        description: description.trim() || undefined,
-        vulnerabilities: vulnsToSubmit,
+        config_json: config_json,
       };
 
       let result: SystemConfig;
@@ -151,11 +163,17 @@ export default function SystemForm({ mode, initialData, onSuccess }: SystemFormP
   const validateJson = () => {
     try {
       const parsed = JSON.parse(jsonConfig);
-      if (!Array.isArray(parsed)) {
-        setJsonError('JSON must be an array of vulnerabilities');
-      } else {
+      // Accept both array of vulnerabilities or config object
+      if (Array.isArray(parsed)) {
+        // It's a vulnerabilities array - valid
         setJsonError('');
         toast.success('JSON is valid!');
+      } else if (parsed.vulnerabilities && Array.isArray(parsed.vulnerabilities)) {
+        // It's a config object with vulnerabilities - valid
+        setJsonError('');
+        toast.success('JSON is valid!');
+      } else {
+        setJsonError('JSON must be either an array of vulnerabilities or an object with a vulnerabilities array');
       }
     } catch (e: any) {
       setJsonError(e.message);

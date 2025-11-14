@@ -91,29 +91,42 @@ export const authAPI = {
   },
 };
 
+// Helper to parse backend system config to frontend format
+const parseSystemConfig = (backendConfig: any): SystemConfig => {
+  const configData = JSON.parse(backendConfig.config_json);
+  return {
+    id: backendConfig.id,
+    owner_id: backendConfig.user_id,
+    name: backendConfig.name,
+    vulnerabilities: configData.vulnerabilities || [],
+    created_at: backendConfig.created_at,
+    updated_at: backendConfig.created_at, // Backend doesn't have updated_at
+  };
+};
+
 // System Configuration API
 export const systemsAPI = {
   getSystems: async (): Promise<SystemConfig[]> => {
-    const response = await api.get<SystemConfig[]>('/systems');
-    return response.data;
+    const response = await api.get<any[]>('/systems');
+    return response.data.map(parseSystemConfig);
   },
 
   getSystem: async (systemId: number): Promise<SystemConfig> => {
-    const response = await api.get<SystemConfig>(`/systems/${systemId}`);
-    return response.data;
+    const response = await api.get<any>(`/systems/${systemId}`);
+    return parseSystemConfig(response.data);
   },
 
   createSystem: async (systemData: SystemConfigCreate): Promise<SystemConfig> => {
-    const response = await api.post<SystemConfig>('/systems', systemData);
-    return response.data;
+    const response = await api.post<any>('/systems', systemData);
+    return parseSystemConfig(response.data);
   },
 
   updateSystem: async (
     systemId: number,
     systemData: SystemConfigUpdate
   ): Promise<SystemConfig> => {
-    const response = await api.put<SystemConfig>(`/systems/${systemId}`, systemData);
-    return response.data;
+    const response = await api.put<any>(`/systems/${systemId}`, systemData);
+    return parseSystemConfig(response.data);
   },
 
   deleteSystem: async (systemId: number): Promise<void> => {
