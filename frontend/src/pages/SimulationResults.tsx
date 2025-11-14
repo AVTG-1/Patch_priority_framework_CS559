@@ -352,7 +352,12 @@ export default function SimulationResults() {
                               </dd>
                             </div>
                             <div>
-                              <dt className="text-gray-600">Cost:</dt>
+                              <dt className="text-gray-600">
+                                Cost:
+                                <span className="text-xs font-normal text-gray-500 ml-1">
+                                  (not exported by backend)
+                                </span>
+                              </dt>
                               <dd className="text-gray-900">
                                 {round.defender_action?.cost?.toFixed(2) || 'N/A'}
                               </dd>
@@ -372,7 +377,12 @@ export default function SimulationResults() {
                               </dd>
                             </div>
                             <div>
-                              <dt className="text-gray-600">Impact:</dt>
+                              <dt className="text-gray-600">
+                                Impact:
+                                <span className="text-xs font-normal text-gray-500 ml-1">
+                                  (not exported by backend)
+                                </span>
+                              </dt>
                               <dd className="text-gray-900">
                                 {round.attacker_action?.impact?.toFixed(2) || 'N/A'}
                               </dd>
