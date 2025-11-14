@@ -184,6 +184,104 @@ export default function SystemDetail() {
         />
       </div>
 
+      {/* System Architecture - Subsystems & Dependencies */}
+      {system.subsystems && system.subsystems.length > 0 && (
+        <Card>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">System Architecture</h2>
+          <div className="space-y-4">
+            {/* Subsystems */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Subsystems</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {system.subsystems.map((subsystem, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 rounded-md p-3 bg-gray-50"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-900">
+                        {subsystem.name}
+                      </span>
+                      <Badge variant="info">
+                        {(subsystem.importance * 100).toFixed(0)}%
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Importance: {subsystem.importance.toFixed(2)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Dependencies */}
+            {system.dependencies && Object.keys(system.dependencies).length > 0 && (
+              <div className="pt-4 border-t border-gray-200">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">
+                  Functional Dependencies
+                </h3>
+                <div className="space-y-2">
+                  {Object.entries(system.dependencies).map(([subsystem, deps], index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-2 text-sm"
+                    >
+                      <span className="font-medium text-gray-900 min-w-[150px]">
+                        {subsystem}
+                      </span>
+                      <span className="text-gray-500">depends on</span>
+                      <span className="text-indigo-600">
+                        {deps.length > 0 ? deps.join(', ') : 'nothing'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Vulnerability Assignment */}
+            <div className="pt-4 border-t border-gray-200">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">
+                Vulnerability Distribution
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {system.subsystems.map((subsystem, index) => {
+                  const subsystemVulns = system.vulnerabilities.filter(
+                    (v) => v.affected_component === subsystem.name
+                  );
+                  return (
+                    <div
+                      key={index}
+                      className="border border-gray-200 rounded-md p-3"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-900">
+                          {subsystem.name}
+                        </span>
+                        <Badge
+                          variant={subsystemVulns.length > 0 ? 'warning' : 'success'}
+                        >
+                          {subsystemVulns.length} vulns
+                        </Badge>
+                      </div>
+                      {subsystemVulns.length > 0 && (
+                        <div className="text-xs text-gray-600 space-y-1">
+                          {subsystemVulns.map((v, i) => (
+                            <div key={i} className="truncate">
+                              • {v.vuln_id}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Vulnerabilities Table */}
       <Card>
         <div className="flex items-center justify-between mb-4">
