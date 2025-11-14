@@ -147,7 +147,7 @@ export default function BackendGuide() {
 
               <div className="bg-gray-50 p-3 rounded">
                 <p className="font-semibold text-gray-900 mb-1">📄 player.py</p>
-                <p className="Purpose:</strong> Represents game players (attackers/defenders)</p>
+                <p><strong>Purpose:</strong> Represents game players (attackers/defenders)</p>
                 <p><strong>Key Class:</strong> <code>PlayerBase</code></p>
                 <ul className="list-disc ml-5 mt-2">
                   <li><code>create_defender(id, budget)</code> - Factory for defenders</li>
