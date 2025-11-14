@@ -77,6 +77,7 @@ class SystemConfigResponse(BaseModel):
 class SimulationRunCreate(BaseModel):
     """Schema for creating simulation run"""
     system_id: int = Field(..., description="System configuration ID to simulate")
+    system_name: str = Field(..., min_length=1, max_length=255, description="System name for simulation")
     rounds: int = Field(default=10, ge=1, le=100, description="Number of simulation rounds (1-100)")
     defender_budget: Optional[float] = Field(None, ge=0.0, description="Defender resource budget")
     attacker_budget: Optional[float] = Field(None, ge=0.0, description="Attacker resource budget")
