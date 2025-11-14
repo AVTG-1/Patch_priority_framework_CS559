@@ -206,20 +206,48 @@ async def run_new_simulation(
     db.commit()
     db.refresh(new_simulation)
 
-    # Inject system_name into config_dict for ConfigLoader
-    # The ConfigLoader requires system_name to be in the JSON config
+    # Transform config_dict to match ConfigLoader schema
     config_dict['system_name'] = simulation_data.system_name
 
-    # Also ensure subsystems field exists (ConfigLoader requires it)
-    if 'subsystems' not in config_dict:
-        # If no subsystems defined, create a default subsystem with all vulnerabilities
+    # Transform vulnerabilities to ConfigLoader format
+    vulnerabilities_list = config_dict.get('vulnerabilities', [])
+    transformed_vulns = []
+
+    for vuln in vulnerabilities_list:
+        # Convert frontend vuln_id to backend cve_id
+        cve_id = vuln.get('vuln_id', vuln.get('cve_id', 'CUSTOM-UNKNOWN'))
+
+        # Get or calculate CVSS scores
+        cvss_impact = vuln.get('cvss_impact', vuln.get('cvss_score', 5.0) * 0.6)
+        cvss_exploitability = vuln.get('cvss_exploitability', vuln.get('cvss_score', 5.0) * 0.4)
+
+        transformed_vulns.append({
+            'cve_id': cve_id,
+            'subsystem_id': 'main',  # Assign to main subsystem
+            'cvss_impact': float(cvss_impact),
+            'cvss_exploitability': float(cvss_exploitability),
+            'patch_cost': vuln.get('patch_cost', 1.0),
+            'description': vuln.get('description', ''),
+            'exploit_present': vuln.get('exploit_present', False),
+            'dependencies': vuln.get('dependencies', []),
+            'source': 'CUSTOM'
+        })
+
+    config_dict['vulnerabilities'] = transformed_vulns
+
+    # Ensure subsystems field exists (ConfigLoader requires it)
+    if 'subsystems' not in config_dict or not config_dict['subsystems']:
         config_dict['subsystems'] = [
             {
-                'name': simulation_data.system_name,
                 'id': 'main',
-                'vulnerabilities': []
+                'name': simulation_data.system_name,
             }
         ]
+    else:
+        # Ensure all subsystems have required 'id' and 'name' fields
+        for subsystem in config_dict['subsystems']:
+            if 'id' not in subsystem:
+                subsystem['id'] = subsystem.get('name', 'subsys').lower().replace(' ', '_')
 
     # Write config to temporary file for background task
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
