@@ -207,11 +207,11 @@ const parseSimulationResponse = (backendSim: any): any => {
           remaining_impact_score: results.ris_summary[i] || 0, // RIS at START of round
           defender_action: {
             patches: roundDetail.patched_groups || [],
-            cost: 0, // Backend doesn't provide per-round cost
+            cost: roundDetail.defender_cost || 0,
           },
           attacker_action: {
             exploits: roundDetail.attacked_vulnerabilities || [],
-            impact: 0, // Backend doesn't provide per-round impact
+            impact: roundDetail.attacker_impact || 0,
           },
         });
       }

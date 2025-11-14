@@ -231,25 +231,35 @@ class Simulator:
         defender_actions = defender_strategies.get_strategy(defender_action_idx)
         attacker_actions = attacker_strategies.get_strategy(attacker_action_idx)
         
-        # Apply patches
+        # Apply patches and calculate cost
         patched_cves = []
+        defender_cost = 0.0
         for group_id in defender_actions:
             group = self.game_state.get_patch_group(group_id)
             if group:
                 self.game_state.apply_patch_group(group_id)
                 patched_cves.extend(group['cve_ids'])
-        
-        # Apply exploits
+                defender_cost += group['total_cost']
+
+        # Apply exploits and calculate impact
         exploited_cves = []
+        attacker_impact = 0.0
         for cve_id in attacker_actions:
             if cve_id not in self.game_state.patched_cves:
-                self.game_state.exploit_vulnerabilities([cve_id])
-                exploited_cves.append(cve_id)
-        
+                vuln = self.game_state.get_vulnerability(cve_id)
+                if vuln:
+                    # Calculate impact for this successful exploit
+                    impact = vuln['cvss_impact'] * vuln['importance_score']
+                    if vuln.get('exploit_present', False):
+                        impact *= 1.5
+                    attacker_impact += impact
+                    self.game_state.exploit_vulnerabilities([cve_id])
+                    exploited_cves.append(cve_id)
+
         # Calculate final RIS
         final_ris = self.game_state.calculate_remaining_impact()
-        
-        # Record round results
+
+        # Record round results with cost and impact
         round_result = {
             'round': self.game_state.current_round,
             'initial_ris': initial_ris,
@@ -257,6 +267,8 @@ class Simulator:
             'ris_reduction': initial_ris - final_ris,
             'patches_applied': patched_cves,
             'vulnerabilities_exploited': exploited_cves,
+            'defender_cost': defender_cost,
+            'attacker_impact': attacker_impact,
             'defender_payoff': equilibrium['defender_payoff'] if equilibrium else 0.0,
             'attacker_payoff': equilibrium['attacker_payoff'] if equilibrium else 0.0,
             'equilibrium_type': equilibrium['type'] if equilibrium else 'none',

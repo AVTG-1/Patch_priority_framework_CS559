@@ -352,14 +352,11 @@ export default function SimulationResults() {
                               </dd>
                             </div>
                             <div>
-                              <dt className="text-gray-600">
-                                Cost:
-                                <span className="text-xs font-normal text-gray-500 ml-1">
-                                  (not exported by backend)
-                                </span>
-                              </dt>
+                              <dt className="text-gray-600">Patch Cost:</dt>
                               <dd className="text-gray-900">
-                                {round.defender_action?.cost?.toFixed(2) || 'N/A'}
+                                {round.defender_action?.cost !== undefined
+                                  ? round.defender_action.cost.toFixed(2)
+                                  : '0.00'}
                               </dd>
                             </div>
                           </dl>
@@ -377,14 +374,11 @@ export default function SimulationResults() {
                               </dd>
                             </div>
                             <div>
-                              <dt className="text-gray-600">
-                                Impact:
-                                <span className="text-xs font-normal text-gray-500 ml-1">
-                                  (not exported by backend)
-                                </span>
-                              </dt>
+                              <dt className="text-gray-600">Exploit Impact:</dt>
                               <dd className="text-gray-900">
-                                {round.attacker_action?.impact?.toFixed(2) || 'N/A'}
+                                {round.attacker_action?.impact !== undefined
+                                  ? round.attacker_action.impact.toFixed(2)
+                                  : '0.00'}
                               </dd>
                             </div>
                           </dl>

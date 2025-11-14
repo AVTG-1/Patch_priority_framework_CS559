@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { PlayCircle, Eye, Calendar, TrendingDown } from 'lucide-react';
+import { PlayCircle, Eye, Calendar, TrendingDown, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { simulationsAPI, systemsAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
@@ -12,6 +12,7 @@ import Badge from '../components/Badge';
 export default function Simulations() {
   const navigate = useNavigate();
   const [filterSystemId, setFilterSystemId] = useState<number | null>(null);
+  const [explanationOpen, setExplanationOpen] = useState(false);
 
   const {
     data: simulations,
@@ -97,6 +98,162 @@ export default function Simulations() {
             ))}
           </select>
         </div>
+      </Card>
+
+      {/* How It Works Explanation */}
+      <Card>
+        <button
+          onClick={() => setExplanationOpen(!explanationOpen)}
+          className="w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded"
+        >
+          <div className="flex items-center gap-2">
+            <Info className="h-5 w-5 text-indigo-600" />
+            <h2 className="text-lg font-semibold text-gray-900">
+              How Simulations Work - Calculation Details
+            </h2>
+          </div>
+          {explanationOpen ? (
+            <ChevronUp className="h-5 w-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-gray-500" />
+          )}
+        </button>
+
+        {explanationOpen && (
+          <div className="mt-4 pt-4 border-t border-gray-200 space-y-6 text-sm text-gray-700">
+            {/* RIS Calculation */}
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">
+                📊 Remaining Impact Score (RIS)
+              </h3>
+              <p className="mb-2">
+                RIS represents the <strong>total remaining risk</strong> in your system:
+              </p>
+              <div className="bg-gray-50 p-3 rounded font-mono text-xs mb-2">
+                RIS = Σ (CVSS Impact × Subsystem Importance × Exploit Multiplier)
+              </div>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li><strong>CVSS Impact:</strong> Severity of vulnerability (0-10)</li>
+                <li><strong>Subsystem Importance:</strong> Calculated using PageRank-like algorithm based on dependencies (0-1)</li>
+                <li><strong>Exploit Multiplier:</strong> 1.5 if public exploit exists, 1.0 otherwise</li>
+              </ul>
+              <p className="mt-2 italic">
+                Higher RIS = More risk. Goal: Reduce RIS by patching high-impact vulnerabilities.
+              </p>
+            </div>
+
+            {/* Subsystem Importance */}
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">
+                🔗 Subsystem Importance Calculation
+              </h3>
+              <p className="mb-2">
+                Uses a <strong>PageRank-style algorithm</strong> with damping factor (0.85):
+              </p>
+              <div className="bg-gray-50 p-3 rounded font-mono text-xs mb-2">
+                importance[i] = (1-d)/n + d × (0.6×W.T + 0.4×N.T) @ importance
+              </div>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li><strong>d = 0.85:</strong> Damping factor prevents zero convergence</li>
+                <li><strong>W:</strong> Functional dependency matrix (if A depends on B, B is more important)</li>
+                <li><strong>N:</strong> Network topology matrix (connections between subsystems)</li>
+                <li><strong>0.6/0.4:</strong> Weights for functional vs. topological importance</li>
+              </ul>
+              <p className="mt-2 italic">
+                Subsystems that others depend on get higher importance scores.
+              </p>
+            </div>
+
+            {/* Game Theory & Nash Equilibrium */}
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">
+                🎯 Game-Theoretic Simulation (Nash Equilibrium)
+              </h3>
+              <p className="mb-2">
+                Each round simulates a <strong>two-player zero-sum game</strong> between defenders and attackers:
+              </p>
+              <div className="space-y-2">
+                <div className="bg-blue-50 p-3 rounded">
+                  <p className="font-semibold text-blue-900 mb-1">Defender Strategy:</p>
+                  <ul className="list-disc list-inside ml-2 text-blue-800">
+                    <li>Choose which patch groups to apply (limited by budget)</li>
+                    <li>Payoff = -(attack impact) - 0.1×(patch cost)</li>
+                    <li>Goal: Minimize attacker's successful impact</li>
+                  </ul>
+                </div>
+                <div className="bg-red-50 p-3 rounded">
+                  <p className="font-semibold text-red-900 mb-1">Attacker Strategy:</p>
+                  <ul className="list-disc list-inside ml-2 text-red-800">
+                    <li>Choose which vulnerabilities to exploit (limited by budget)</li>
+                    <li>Exploit cost = 10.0 - CVSS Exploitability (harder = costlier)</li>
+                    <li>Payoff = (impact if unpatched) - 0.1×(exploit cost)</li>
+                    <li>Goal: Maximize impact on unpatched vulnerabilities</li>
+                  </ul>
+                </div>
+              </div>
+              <p className="mt-2">
+                The <strong>Nash equilibrium solver</strong> finds optimal strategies where neither player can improve by changing strategy alone.
+              </p>
+            </div>
+
+            {/* Cost and Impact */}
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">
+                💰 Cost and Impact Metrics
+              </h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-green-50 p-3 rounded">
+                  <p className="font-semibold text-green-900 mb-1">Patch Cost:</p>
+                  <div className="text-green-800 text-xs">
+                    <p>Sum of <code>patch_cost</code> for all vulnerabilities in applied patch groups.</p>
+                    <p className="mt-1">Represents resources spent on patching (time, effort, downtime).</p>
+                  </div>
+                </div>
+                <div className="bg-orange-50 p-3 rounded">
+                  <p className="font-semibold text-orange-900 mb-1">Exploit Impact:</p>
+                  <div className="text-orange-800 text-xs">
+                    <p>For each successful attack:</p>
+                    <code className="block mt-1">
+                      impact = CVSS Impact × importance × 1.5 (if exploit exists)
+                    </code>
+                    <p className="mt-1">Represents actual damage from successful exploits.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Patch Grouping */}
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">
+                📦 Patch Grouping Methods
+              </h3>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li><strong>Dependencies:</strong> Group patches with same dependency chain</li>
+                <li><strong>Subsystem:</strong> Group all vulnerabilities in same subsystem</li>
+                <li><strong>Severity:</strong> Group by CVSS severity levels</li>
+              </ul>
+            </div>
+
+            {/* Why Attackers May Not Attack */}
+            <div className="bg-yellow-50 p-4 rounded border border-yellow-200">
+              <h3 className="font-semibold text-yellow-900 mb-2">
+                ⚠️ Why You Might See "No Attacks"
+              </h3>
+              <p className="text-yellow-800 mb-2">
+                This is <strong>correct behavior</strong> when the Nash equilibrium determines "do nothing" is optimal for attackers:
+              </p>
+              <ul className="list-disc list-inside ml-2 text-yellow-800 space-y-1">
+                <li>High-value targets already patched by defender</li>
+                <li>Remaining vulnerabilities have low exploitability (high cost, low reward)</li>
+                <li>Expected payoff negative (cost exceeds potential impact)</li>
+                <li>Rational attacker chooses not to waste resources</li>
+              </ul>
+              <p className="mt-2 text-yellow-800 italic">
+                To see more attacker activity: increase attacker budget, add high-exploitability vulnerabilities, or lower defender budget.
+              </p>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Simulations List */}

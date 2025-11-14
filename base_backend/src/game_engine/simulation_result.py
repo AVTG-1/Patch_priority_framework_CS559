@@ -110,7 +110,9 @@ class SimulationResult:
                 'round': detail['round'],
                 'patched_groups': detail.get('patches_applied', []),
                 'attacked_vulnerabilities': detail.get('vulnerabilities_exploited', []),
-                'remaining_ris': detail.get('final_ris', 0.0)
+                'remaining_ris': detail.get('final_ris', 0.0),
+                'defender_cost': detail.get('defender_cost', 0.0),
+                'attacker_impact': detail.get('attacker_impact', 0.0)
             })
         
         return formatted
