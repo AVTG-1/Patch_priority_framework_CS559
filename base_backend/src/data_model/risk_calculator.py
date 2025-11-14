@@ -22,30 +22,36 @@ class RiskCalculator:
         """Initialize risk calculator."""
         self.importance_cache = {}
     
-    def compute_importance(self, system: SystemInstance, 
+    def compute_importance(self, system: SystemInstance,
                           max_iterations: int = 100,
-                          convergence_threshold: float = 1e-6) -> Dict[str, float]:
+                          convergence_threshold: float = 1e-6,
+                          debug: bool = False) -> Dict[str, float]:
         """
         Compute importance scores for all subsystems using iterative algorithm.
-        
+
         Uses a combination of functional dependencies and network topology
         to calculate centrality-based importance scores.
-        
+
         Args:
             system: System instance to analyze
             max_iterations: Maximum iterations for convergence
             convergence_threshold: Convergence threshold for stopping
-        
+            debug: If True, print debug information
+
         Returns:
             Dictionary mapping subsystem IDs to importance scores
         """
         n = len(system.subsystems)
         if n == 0:
             return {}
-        
+
         # Get weights
         w_func = system.weights.get("functional_weight", 0.6)
         w_topo = system.weights.get("topological_weight", 0.4)
+
+        if debug:
+            print(f"[DEBUG] compute_importance called with n={n}")
+            print(f"[DEBUG] w_func={w_func}, w_topo={w_topo}")
         
         # Initialize importance scores uniformly
         importance = np.ones(n) / n
@@ -64,10 +70,22 @@ class RiskCalculator:
         N_norm = N / N_row_sums
         
         # Iterative importance calculation (similar to PageRank)
+        # Using transpose so importance flows TO nodes that others depend on
+        # Add damping factor to prevent convergence to zero (like PageRank teleportation)
+        damping = 0.85
+        base_importance = (1 - damping) / n  # Minimum importance for each node
+
         for iteration in range(max_iterations):
             # Combine functional and topological influences
-            new_importance = w_func * (W_norm.T @ importance) + w_topo * (N_norm.T @ importance)
-            
+            # Transpose: W_norm.T[i,j] = 1 if j depends on i, so i gets importance from j
+            influence = w_func * (W_norm.T @ importance) + w_topo * (N_norm.T @ importance)
+
+            # Add damping to prevent zero convergence
+            new_importance = base_importance + damping * influence
+
+            if debug and iteration < 3:
+                print(f"[DEBUG] Iteration {iteration}: new_importance before norm = {new_importance}")
+
             # Normalize to sum to 1
             # new_importance = new_importance / new_importance.sum() --> Changed
             importance_sum = new_importance.sum()
@@ -75,13 +93,20 @@ class RiskCalculator:
                 new_importance = new_importance / importance_sum
             else:
                 new_importance = np.zeros_like(new_importance)
-            
-            
+
+            if debug and iteration < 3:
+                print(f"[DEBUG] Iteration {iteration}: new_importance after norm = {new_importance}")
+
             # Check convergence
             diff = np.abs(new_importance - importance).sum()
             importance = new_importance
-            
+
+            if debug and iteration < 3:
+                print(f"[DEBUG] Iteration {iteration}: diff = {diff}")
+
             if diff < convergence_threshold:
+                if debug:
+                    print(f"[DEBUG] Converged at iteration {iteration}")
                 break
         
         # Update subsystem objects and create result dictionary
