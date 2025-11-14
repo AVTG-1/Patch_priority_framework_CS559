@@ -163,6 +163,7 @@ export interface RoundData {
 
 export interface SimulationRunCreate {
   system_id: number;
+  system_name: string;
   rounds?: number;
   defender_budget?: number;
   attacker_budget?: number;

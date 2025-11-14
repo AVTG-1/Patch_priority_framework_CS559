@@ -24,6 +24,7 @@ export default function SimulationSetup() {
 
   const [formData, setFormData] = useState<SimulationRunCreate>({
     system_id: selectedSystemId || 0,
+    system_name: '',
     rounds: 10,
     defender_budget: undefined,
     attacker_budget: undefined,
@@ -62,10 +63,14 @@ export default function SimulationSetup() {
   });
 
   useEffect(() => {
-    if (selectedSystemId) {
-      setFormData((prev) => ({ ...prev, system_id: selectedSystemId }));
+    if (selectedSystemId && selectedSystem) {
+      setFormData((prev) => ({
+        ...prev,
+        system_id: selectedSystemId,
+        system_name: selectedSystem.name
+      }));
     }
-  }, [selectedSystemId]);
+  }, [selectedSystemId, selectedSystem]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
