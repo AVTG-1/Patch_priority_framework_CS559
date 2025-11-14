@@ -98,6 +98,15 @@ def run_simulation(
 
     # Step 5: Add additional metadata
     result_dict = result.export_to_dict()
+
+    # Debug logging
+    print(f"[DEBUG] Simulation completed:")
+    print(f"[DEBUG] - Total rounds requested: {rounds}")
+    print(f"[DEBUG] - Total rounds in simulation_results: {simulation_results.get('total_rounds', 'N/A')}")
+    print(f"[DEBUG] - Length of round_details: {len(simulation_results.get('round_details', []))}")
+    print(f"[DEBUG] - Length of per_round_details in result_dict: {len(result_dict.get('per_round_details', []))}")
+    print(f"[DEBUG] - Round numbers in per_round_details: {[r.get('round') for r in result_dict.get('per_round_details', [])]}")
+
     result_dict['system_info'] = {
         'system_name': export_dict['system_name'],
         'subsystem_count': len(export_dict['subsystems']),
