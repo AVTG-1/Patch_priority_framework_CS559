@@ -188,6 +188,49 @@ const parseSimulationResponse = (backendSim: any): any => {
     ...rest
   } = backendSim;
 
+  // Transform results structure to match frontend expectations
+  let transformedResult = results;
+
+  if (results && results.status !== 'pending' && results.status !== 'running' && results.status !== 'failed') {
+    // Transform backend structure to frontend structure
+    transformedResult = {
+      // Transform per_round_details to rounds_data
+      rounds_data: results.per_round_details?.map((round: any) => ({
+        round: round.round,
+        remaining_impact_score: round.remaining_ris || 0,
+        defender_action: {
+          patches: round.patched_groups || [],
+          cost: 0, // Backend doesn't provide per-round cost
+        },
+        attacker_action: {
+          exploits: round.attacked_vulnerabilities || [],
+          impact: 0, // Backend doesn't provide per-round impact
+        },
+      })) || [],
+
+      // Transform simulation_metrics to summary
+      summary: results.simulation_metrics ? {
+        total_rounds: results.simulation_metrics.total_rounds || parameters?.rounds || 0,
+        patches_applied: results.simulation_metrics.total_vulnerabilities_patched || 0,
+        vulnerabilities_exploited: results.simulation_metrics.total_vulnerabilities_exploited || 0,
+        average_ris_per_round: results.ris_summary ?
+          results.ris_summary.reduce((a: number, b: number) => a + b, 0) / results.ris_summary.length : 0,
+      } : undefined,
+
+      // Create final_scores from simulation_metrics
+      final_scores: results.simulation_metrics ? {
+        defender_score: results.simulation_metrics.final_ris || 0,
+        attacker_score: 0, // Not provided by backend
+      } : undefined,
+
+      // Keep original data for reference
+      patch_priority_list: results.patch_priority_list,
+      equilibrium_report: results.equilibrium_report,
+      system_info: results.system_info,
+      simulation_metrics: results.simulation_metrics,
+    };
+  }
+
   return {
     id: simulation_id,
     system_id: system_config_id,
@@ -198,7 +241,7 @@ const parseSimulationResponse = (backendSim: any): any => {
     patch_grouping_method: parameters?.patch_grouping_method,
     // Handle results - backend returns {status, message} or actual results
     status: results?.status || 'completed',
-    result: results?.status === 'pending' || results?.status === 'running' ? undefined : results,
+    result: results?.status === 'pending' || results?.status === 'running' ? undefined : transformedResult,
     error_message: results?.message && results?.status === 'failed' ? results.message : undefined,
     ...rest,
   };
